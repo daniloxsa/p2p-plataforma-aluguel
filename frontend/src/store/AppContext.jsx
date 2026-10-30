@@ -1,7 +1,7 @@
 import { createContext, useContext, useLayoutEffect, useCallback, useState, useEffect, useSyncExternalStore } from "react";
 import { authService } from "../services/authService";
 import { applyTheme } from "./theme";
-import { reservaService, vehicleService } from "../services";
+import { reservaService, vehicleService, usuariosService } from "../services";
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -51,6 +51,24 @@ export function AppProvider({ children }) {
     return () => { cancelado = true; };
   }, []);
 
+  // Carrega dados do perfil do usuário autenticado
+  useEffect(() => {
+    let active = true;
+    if (user?.id) {
+      usuariosService.getProfile()
+        .then(profile => {
+          const current = authService.getSnapshot().user;
+          if (active && current?.id === user.id && profile.id === user.id) {
+            authService.update({ user: { ...current, ...profile } });
+          }
+        })
+        .catch(() => {
+          if (active) flash("Não foi possível carregar os dados do perfil.");
+        });
+    }
+    return () => { active = false; };
+  }, [user?.id]);
+
   function flash(msg) {
     setToast(msg);
     setTimeout(() => setToast(""), 3200);
@@ -58,6 +76,16 @@ export function AppProvider({ children }) {
 
   const login = credentials => authService.login(credentials);
   const logout = () => authService.logout();
+
+  async function updateProfile(data) {
+    const updatedUser = await usuariosService.updateProfile(data);
+    // Atualiza o usuário no authService para manter a consistência
+    const current = authService.getSnapshot().user;
+    if (current?.id === user?.id && updatedUser.id === current?.id) {
+      authService.update({ user: { ...current, ...updatedUser } });
+    }
+    return updatedUser;
+  }
 
   // RN03 / RF21 — bloqueia conflito temporal
   const hasConflict = useCallback(async (veiculoId, inicio, fim, ignoreId = null) => {
@@ -101,6 +129,7 @@ export function AppProvider({ children }) {
     ...auth,
     login,
     logout,
+    updateProfile,
     vehicles,
     setVehicles,
     addVehicle,

@@ -8,7 +8,7 @@ export function setupApp(app: INestApplication) {
   app.setGlobalPrefix('api');
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe(validationOptions));
-  app.enableCors({ origin: config.origins, credentials: true, methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'X-UniVia-CSRF'] });
+  app.enableCors({ origin: config.origins, credentials: true, methods: ['GET', 'POST', 'PATCH', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization', 'X-UniVia-CSRF'] });
   app.use('/api/auth', (_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
     res.setHeader('Cache-Control', 'no-store');
     next();

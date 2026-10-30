@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from '../prisma/prisma.module.ts';
@@ -11,7 +11,7 @@ import { CsrfGuard } from './guards/csrf.guard.ts';
 import { AuthThrottlerGuard } from './guards/auth-throttler.guard.ts';
 
 @Module({
-  imports: [PrismaModule, UsuariosModule, JwtModule.register({}), ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }])],
+  imports: [PrismaModule, forwardRef(() => UsuariosModule), JwtModule.register({}), ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }])],
   controllers: [AuthController], providers: [AuthConfig, AuthService, JwtAuthGuard, CsrfGuard, AuthThrottlerGuard], exports: [JwtAuthGuard, AuthService],
 })
 export class AuthModule {}

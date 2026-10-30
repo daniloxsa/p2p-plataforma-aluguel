@@ -1,4 +1,3 @@
-export { vehicleRepository } from "./vehicleRepository";
-export { reservaRepository } from "./reservaRepository";
-export { VehicleRepository } from "./vehicleRepository";
-export { ReservaRepository } from "./reservaRepository";
+export { usuariosRepository } from "./usuariosRepository";
+export { vehicleRepository, VehicleRepository } from "./vehicleRepository";
+export { reservaRepository, ReservaRepository } from "./reservaRepository";

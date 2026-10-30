@@ -58,7 +58,8 @@ it('atualização com cookie válido restaura usuário pendente sem exigir KYC',
   mount('/painel', true);
   await screen.findByRole('heading', { name: 'Área protegida' });
   expect(screen.getByText(/João Silva · PENDENTE_VERIFICACAO/)).toBeTruthy();
-  expect(fetch).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+  expect(fetch.mock.calls.filter(([url]) => url.endsWith('/usuarios/me'))).toHaveLength(1);
 });
 
 it('login confirma /me, impede envio duplicado e retorna à rota de destino', async () => {
@@ -77,7 +78,7 @@ it('login confirma /me, impede envio duplicado e retorna à rota de destino', as
   expect(screen.queryByRole('heading', { name: 'Área protegida' })).toBeNull();
   resolve(); await screen.findByRole('heading', { name: 'Área protegida' });
   expect(fetch.mock.calls.filter(([url]) => url.endsWith('/login'))).toHaveLength(1);
-  expect(fetch.mock.calls.filter(([url]) => url.endsWith('/me'))).toHaveLength(1);
+  expect(fetch.mock.calls.filter(([url]) => url.endsWith('/auth/me'))).toHaveLength(1);
   expect(localStorage.getItem('ds_user')).toBeNull();
 });
 

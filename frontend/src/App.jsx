@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import VehicleDetail from "./pages/VehicleDetail";
 import Checkout from "./pages/Checkout";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AddVehicle from "./pages/AddVehicle";
@@ -47,6 +48,7 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/checkout/:id" element={<Checkout />} />
               <Route path="/painel" element={<Dashboard />} />
+              <Route path="/perfil" element={<Profile />} />
               <Route path="/anunciar" element={<AddVehicle />} />
               <Route path="/admin" element={<Admin />} />
             </Route>

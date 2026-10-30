@@ -25,7 +25,8 @@ export function Header() {
             <NavLink to="/" className={({ isActive }) => isActive ? "active" : ""}>Buscar</NavLink>
             <NavLink to="/anunciar" className={({ isActive }) => isActive ? "active" : ""}>Anunciar</NavLink>
             <NavLink to="/painel" className={({ isActive }) => isActive ? "active" : ""}>Painel</NavLink>
-            <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}>Admin</NavLink>
+            {user && <NavLink to="/perfil" className={({ isActive }) => isActive ? "active" : ""}>Perfil</NavLink>}
+            {user && <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}>Admin</NavLink>}
           </nav>
           <button
             type="button"
@@ -56,8 +57,9 @@ export function Header() {
           <a href="#/" onClick={() => setOpen(false)}>Buscar veículos</a>
           <a href="#/anunciar" onClick={() => setOpen(false)}>Anunciar veículo</a>
           <a href="#/painel" onClick={() => setOpen(false)}>Painel / Reservas</a>
+          <a href="#/perfil" onClick={() => setOpen(false)}>Meu perfil</a>
           <a href="#/cadastro" onClick={() => setOpen(false)}>Criar conta</a>
-          <a href="#/admin" onClick={() => setOpen(false)}>Admin</a>
+          {user && <a href="#/admin" onClick={() => setOpen(false)}>Admin</a>}
         </div>
       )}
     </>
@@ -77,14 +79,16 @@ export function Footer() {
 }
 
 export function BottomNav() {
+  const { user } = useApp();
   return (
     <nav className="bottomnav">
       <div className="bottomnav-inner">
         <NavLink to="/" className={({ isActive }) => isActive ? "active" : ""}><span>Buscar</span></NavLink>
         <NavLink to="/anunciar" className={({ isActive }) => isActive ? "active" : ""}><span>Anunciar</span></NavLink>
         <NavLink to="/painel" className={({ isActive }) => isActive ? "active" : ""}><span>Painel</span></NavLink>
+        {user && <NavLink to="/perfil" className={({ isActive }) => isActive ? "active" : ""}><span>Perfil</span></NavLink>}
         <NavLink to="/cadastro" className={({ isActive }) => isActive ? "active" : ""}><span>Cadastro</span></NavLink>
-        <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}><span>Admin</span></NavLink>
+        {user && <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}><span>Admin</span></NavLink>}
       </div>
     </nav>
   );
