@@ -3,9 +3,17 @@ import { useState } from "react";
 import { useApp } from "../store/AppContext";
 
 export function Header() {
-  const { user, logout, theme, toggleTheme } = useApp();
+  const { user, logout, theme, toggleTheme, isAuthLoading, flash } = useApp();
   const [open, setOpen] = useState(false);
   const nav = useNavigate();
+  const [leaving, setLeaving] = useState(false);
+  async function signOut() {
+    if (leaving) return;
+    setLeaving(true);
+    try { await logout(); flash("Sessão encerrada."); }
+    catch { flash("Você saiu deste dispositivo, mas não foi possível confirmar a revogação da sessão no servidor."); }
+    finally { setLeaving(false); nav("/login", { replace: true }); }
+  }
   return (
     <>
       <header className="header">
@@ -35,10 +43,10 @@ export function Header() {
           {user ? (
             <div className="row" style={{ marginLeft: "auto" }}>
               <span className="tag">{user.nome} · {user.status}</span>
-              <button className="btn ghost small" onClick={logout}>Sair</button>
+              <button className="btn ghost small" disabled={leaving || isAuthLoading} onClick={signOut}>{leaving ? "Saindo..." : "Sair"}</button>
             </div>
           ) : (
-            <button className="btn primary small" style={{ marginLeft: "auto" }} onClick={() => nav("/login")}>Entrar</button>
+            <button className="btn primary small" disabled={isAuthLoading} style={{ marginLeft: "auto" }} onClick={() => nav("/login")}>{isAuthLoading ? "Verificando sessão..." : "Entrar"}</button>
           )}
           <button className="hamburger" onClick={() => setOpen(!open)} aria-label="menu">—</button>
         </div>
@@ -48,7 +56,7 @@ export function Header() {
           <a href="#/" onClick={() => setOpen(false)}>Buscar veículos</a>
           <a href="#/anunciar" onClick={() => setOpen(false)}>Anunciar veículo</a>
           <a href="#/painel" onClick={() => setOpen(false)}>Painel / Reservas</a>
-          <a href="#/cadastro" onClick={() => setOpen(false)}>Verificação KYC</a>
+          <a href="#/cadastro" onClick={() => setOpen(false)}>Criar conta</a>
           <a href="#/admin" onClick={() => setOpen(false)}>Admin</a>
         </div>
       )}
@@ -60,7 +68,7 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="container">
-        <strong style={{ color: "var(--ink)" }}>DriveShare P2P — protótipo front-end</strong>
+        <strong style={{ color: "var(--ink)" }}>DriveShare P2P — autenticação real · demais módulos em demonstração</strong>
         <p>React + Vite · responsivo · dados de demonstração. RN01 verificação KYC · RN03 sem sobreposição · RN05 caução isolada · RN09 repasse pós-devolução · RN10 disputa congela valores.</p>
         <p>Fluxo: SOLICITADA → APROVADA → EM_ANDAMENTO → CONCLUÍDA · EM_DISPUTA / CANCELADA / RECUSADA</p>
       </div>
@@ -75,7 +83,7 @@ export function BottomNav() {
         <NavLink to="/" className={({ isActive }) => isActive ? "active" : ""}><span>Buscar</span></NavLink>
         <NavLink to="/anunciar" className={({ isActive }) => isActive ? "active" : ""}><span>Anunciar</span></NavLink>
         <NavLink to="/painel" className={({ isActive }) => isActive ? "active" : ""}><span>Painel</span></NavLink>
-        <NavLink to="/cadastro" className={({ isActive }) => isActive ? "active" : ""}><span>KYC</span></NavLink>
+        <NavLink to="/cadastro" className={({ isActive }) => isActive ? "active" : ""}><span>Cadastro</span></NavLink>
         <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}><span>Admin</span></NavLink>
       </div>
     </nav>

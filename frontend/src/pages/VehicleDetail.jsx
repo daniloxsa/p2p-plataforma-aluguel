@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { BRL, diffDays } from "../data/mock";
 import { useApp } from "../store/AppContext";
@@ -7,11 +7,22 @@ export default function VehicleDetail() {
   const { id } = useParams();
   const [sp] = useSearchParams();
   const nav = useNavigate();
-  const { vehicles, user, createReserva, hasConflict } = useApp();
+  const { vehicles, user, createReserva, hasConflict, flash, isAuthLoading } = useApp();
   const v = vehicles.find((x) => x.id === id);
 
   const [inicio, setInicio] = useState(sp.get("inicio") || "2026-10-10");
   const [fim, setFim] = useState(sp.get("fim") || "2026-10-13");
+  const [conflito, setConflito] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [reserving, setReserving] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setChecking(true);
+    hasConflict(id, inicio, fim).then(value => { if (active) setConflito(value); })
+      .catch(() => { if (active) setConflito(true); })
+      .finally(() => { if (active) setChecking(false); });
+    return () => { active = false; };
+  }, [id, inicio, fim, hasConflict]);
 
   const calc = useMemo(() => {
     if (!v) return null;
@@ -25,15 +36,16 @@ export default function VehicleDetail() {
 
   if (!v) return <div className="container page"><div className="alert err">Veículo não encontrado.</div></div>;
 
-  const conflito = hasConflict(v.id, inicio, fim);
-
-  function reservar() {
-    if (!user) { nav("/login"); return; }
-    // RN01: exige verificado (login demo já é verificado)
-    // RN04: CNH válida — simulada no cadastro
-    const r = createReserva(v.id, inicio, fim, calc.total, v.caucao);
-    if (!r.ok) return;
-    nav(`/checkout/${r.id}`);
+  async function reservar() {
+    if (!user) { nav("/login", { state: { from: `/veiculo/${id}?inicio=${inicio}&fim=${fim}` } }); return; }
+    if (reserving) return;
+    setReserving(true);
+    try {
+      const r = await createReserva(v.id, inicio, fim, calc.total, v.caucao);
+      if (!r.ok) { flash(r.msg); return; }
+      nav(`/checkout/${r.id}`);
+    } catch { flash("Não foi possível criar a reserva de demonstração."); }
+    finally { setReserving(false); }
   }
 
   return (
@@ -71,11 +83,11 @@ export default function VehicleDetail() {
           <div className="kv"><span>Taxa plataforma 12% (RF10)</span><strong>{BRL(calc.taxa)}</strong></div>
           <div className="kv"><span>Caução (retenção temporária)</span><strong>{BRL(v.caucao)}</strong></div>
           <div className="kv"><span>Total a pagar agora</span><strong style={{ fontSize: 20 }}>{BRL(calc.total)}</strong></div>
-          {conflito
+          {checking ? <div className="alert info">Consultando disponibilidade...</div> : conflito
             ? <div className="alert err">Conflito de datas (RN03/RF21): já existe reserva neste período. Altere as datas.</div>
             : <div className="alert ok">Disponível — sem sobreposição para este período.</div>}
           {!v.docsOk && <div className="alert warn">Veículo ainda EM_ANALISE (RN02) — protótipo permite simular mesmo assim.</div>}
-          <button className="btn primary" style={{ width: "100%" }} disabled={conflito} onClick={reservar}>
+          <button className="btn primary" style={{ width: "100%" }} disabled={conflito || checking || reserving || isAuthLoading} onClick={reservar}>
             {user ? "Solicitar reserva → contrato" : "Entrar e solicitar (RN01)"}
           </button>
           <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>

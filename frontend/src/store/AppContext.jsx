@@ -1,4 +1,5 @@
-import { createContext, useContext, useLayoutEffect, useMemo, useState, useEffect } from "react";
+import { createContext, useContext, useLayoutEffect, useCallback, useState, useEffect, useSyncExternalStore } from "react";
+import { authService } from "../services/authService";
 import { applyTheme } from "./theme";
 import { reservaService, vehicleService } from "../services";
 
@@ -13,9 +14,14 @@ export function AppProvider({ children }) {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
   }
 
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ds_user")) || null; } catch { return null; }
-  });
+  const auth = useSyncExternalStore(authService.subscribe, authService.getSnapshot);
+  const { user } = auth;
+  useEffect(() => {
+    let active = true;
+    try { localStorage.removeItem("ds_user"); } catch { /* Armazenamento pode estar desabilitado. */ }
+    authService.restore().catch(error => { if (active) flash(error.message); });
+    return () => { active = false; };
+  }, []);
   const [vehicles, setVehicles] = useState([]);
   const [reservas, setReservas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +41,8 @@ export function AppProvider({ children }) {
           setVehicles(veiculos);
           setReservas(reservasList);
         }
-      } catch (err) {
-        console.warn("Falha ao carregar dados:", err);
+      } catch {
+        flash("Não foi possível carregar os dados de demonstração.");
       } finally {
         if (!cancelado) setLoading(false);
       }
@@ -50,21 +56,13 @@ export function AppProvider({ children }) {
     setTimeout(() => setToast(""), 3200);
   }
 
-  function loginAs(name = "Visitante Verificado") {
-    const u = { nome: name, status: "Verificado", score: 4.8, cnh: "B · válida até 2031" };
-    setUser(u);
-    localStorage.setItem("ds_user", JSON.stringify(u));
-    flash("Login simulado: usuário Verificado (RN01).");
-  }
-  function logout() {
-    setUser(null);
-    localStorage.removeItem("ds_user");
-  }
+  const login = credentials => authService.login(credentials);
+  const logout = () => authService.logout();
 
   // RN03 / RF21 — bloqueia conflito temporal
-  async function hasConflict(veiculoId, inicio, fim, ignoreId = null) {
+  const hasConflict = useCallback(async (veiculoId, inicio, fim, ignoreId = null) => {
     return reservaService.hasConflict(veiculoId, inicio, fim, ignoreId);
-  }
+  }, []);
 
   async function createReserva(veiculoId, inicio, fim, total, caucao) {
     const resultado = await reservaService.solicitar({
@@ -97,12 +95,11 @@ export function AppProvider({ children }) {
     setVehicles((prev) => [novo, ...prev]);
   }
 
-  const value = useMemo(() => ({
+  const value = {
     theme,
     toggleTheme,
-    user,
-    setUser,
-    loginAs,
+    ...auth,
+    login,
     logout,
     vehicles,
     setVehicles,
@@ -114,7 +111,7 @@ export function AppProvider({ children }) {
     hasConflict,
     toast,
     flash,
-  }), [theme, user, vehicles, reservas, loading]);
+  };
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

@@ -1,61 +1,59 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+﻿import { useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../store/AppContext";
+import { authService } from "../services/authService";
+import { registrationPayload } from "../services/authValidation";
 
 export default function Register() {
-  const { loginAs, flash } = useApp();
+  const { flash } = useApp();
   const nav = useNavigate();
-  const [form, setForm] = useState({ nome: "Ana Souza", cpf: "123.456.789-00", cnh: "B", validade: "2031-05-20", bio: false });
-  const [step, setStep] = useState(1);
+  const submitting = useRef(false);
+  const [form, setForm] = useState({ nome: "", cpf: "", email: "", telefone: "", senha: "", confirmacao: "" });
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const set = (field, value) => setForm(current => ({ ...current, [field]: value }));
 
-  function next() {
-    if (step === 1 && (!form.nome || !form.cpf)) { flash("Preencha nome e CPF."); return; }
-    if (step === 2 && !form.bio) { flash("Faça a biometria facial simulada para avançar (RNF09)."); return; }
-    if (step < 3) setStep(step + 1);
-    else {
-      loginAs(form.nome);
-      flash("KYC aprovado: OCR + biometria + CNH válida (RF01/RF22 · RN01/RN04).");
-      nav("/");
-    }
+  async function submit(event) {
+    event.preventDefault();
+    if (submitting.current) return;
+    setErr("");
+    let payload;
+    try { payload = registrationPayload(form); }
+    catch (error) { setErr(error.message); return; }
+    submitting.current = true;
+    setLoading(true);
+    try {
+      await authService.register(payload);
+      flash("Cadastro concluído. Entre com seu e-mail e senha.");
+      nav("/login", { replace: true, state: { registered: true } });
+    } catch (error) { setErr(error.message); }
+    finally { submitting.current = false; setLoading(false); }
   }
 
   return (
     <div className="container page" style={{ maxWidth: 640 }}>
-      <div className="panel">
-        <h2 style={{ marginTop: 0 }}>Verificação de identidade — KYC (UC01 · RF01)</h2>
-        <div className="row">
-          {[1, 2, 3].map((s) => <span key={s} className={`tag ${step >= s ? "active" : ""}`} style={step >= s ? { background: "var(--ink)", color: "var(--on-ink)" } : {}}>Etapa {s}</span>)}
+      <form className="panel" onSubmit={submit} noValidate>
+        <h2 style={{ marginTop: 0 }}>Criar conta</h2>
+        <p className="muted">Cadastre-se para acessar o UniVia.</p>
+        {err && <div className="alert err" role="alert">{err}</div>}
+        <div className="field"><label htmlFor="register-name">Nome completo</label><input id="register-name" autoComplete="name" maxLength={150} required value={form.nome} onChange={e => set("nome", e.target.value)} /></div>
+        <div className="grid2">
+          <div className="field"><label htmlFor="register-cpf">CPF</label><input id="register-cpf" inputMode="numeric" placeholder="000.000.000-00" maxLength={14} required value={form.cpf} onChange={e => set("cpf", e.target.value)} /></div>
+          <div className="field"><label htmlFor="register-phone">Telefone (opcional)</label><input id="register-phone" type="tel" autoComplete="tel" maxLength={20} value={form.telefone} onChange={e => set("telefone", e.target.value)} /></div>
         </div>
-        {step === 1 && (<>
-          <div className="field"><label>Nome completo</label><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
-          <div className="grid2">
-            <div className="field"><label>CPF</label><input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
-            <div className="field"><label>Telefone</label><input defaultValue="(11) 99999-0000" /></div>
-          </div>
-          <div className="alert info">LGPD: dados sensíveis criptografados (RNF02). OCR valida CNH legível; fraude suspende p/ admin (RN12).</div>
-        </>)}
-        {step === 2 && (<>
-          <div className="field"><label>Categoria CNH (RN04 · RF22)</label>
-            <select value={form.cnh} onChange={(e) => setForm({ ...form, cnh: e.target.value })}>
-              <option value="A">A — Moto</option><option value="B">B — Carro</option><option value="AB">AB — Moto + Carro</option><option value="D">D — Van/ônibus</option>
-            </select>
-          </div>
-          <div className="field"><label>Validade CNH</label><input type="date" value={form.validade} onChange={(e) => setForm({ ...form, validade: e.target.value })} /></div>
-          <div className="map-ph">🤳 Biometria facial (demo): <br /><br />
-            <button className="btn small" onClick={() => setForm({ ...form, bio: true })}>{form.bio ? "✅ Rosto capturado" : "Capturar rosto"}</button>
-          </div>
-        </>)}
-        {step === 3 && (<>
-          <div className="alert ok">✅ OCR: CNH legível · Categoria {form.cnh} · válida até {form.validade} · sem restrições.</div>
-          <div className="alert ok">✅ Biometria: match 98,4% · liveness aprovado.</div>
-          <div className="alert info">Status será atualizado para <strong>Verificado</strong> (RN01) — libera reservar e anunciar.</div>
-        </>)}
+        <div className="field"><label htmlFor="register-email">E-mail</label><input id="register-email" type="email" autoComplete="email" maxLength={255} required value={form.email} onChange={e => set("email", e.target.value)} /></div>
+        <div className="grid2">
+          <div className="field"><label htmlFor="register-password">Senha</label><input id="register-password" type="password" autoComplete="new-password" maxLength={128} required value={form.senha} onChange={e => set("senha", e.target.value)} /></div>
+          <div className="field"><label htmlFor="register-confirm">Confirmar senha</label><input id="register-confirm" type="password" autoComplete="new-password" maxLength={128} required value={form.confirmacao} onChange={e => set("confirmacao", e.target.value)} /></div>
+        </div>
+        <p className="muted" style={{ fontSize: 13 }}>Use de 12 a 128 caracteres, com maiúscula, minúscula, número e símbolo.</p>
+        <div className="alert info">Sua conta será criada com verificação pendente. KYC e biometria ainda não estão disponíveis; você poderá entrar e consultar veículos.</div>
         <div className="row" style={{ marginTop: 12 }}>
-          {step > 1 && <button className="btn ghost" onClick={() => setStep(step - 1)}>Voltar</button>}
+          <Link to="/login" className="btn ghost">Já tenho conta</Link>
           <span className="spacer" />
-          <button className="btn primary" onClick={next}>{step === 3 ? "Concluir verificação" : "Avançar"}</button>
+          <button className="btn primary" disabled={loading}>{loading ? "Cadastrando..." : "Criar conta"}</button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

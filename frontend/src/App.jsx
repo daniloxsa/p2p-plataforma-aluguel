@@ -9,6 +9,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AddVehicle from "./pages/AddVehicle";
 import Admin from "./pages/Admin";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function Toast() {
   const { toast } = useApp();
@@ -26,6 +27,12 @@ function ScrollTop() {
   return null;
 }
 
+function DemoNotice() {
+  const { pathname } = useLocation();
+  if (["/login", "/cadastro"].includes(pathname)) return null;
+  return <div className="container"><div className="alert info">Veículos, anúncios, reservas, pagamentos e painel são demonstrações locais, sem persistência no servidor ou cobranças reais.</div></div>;
+}
+
 export default function App() {
   return (
     <AppProvider>
@@ -33,15 +40,18 @@ export default function App() {
         <ScrollTop />
         <Header />
         <main>
+          <DemoNotice />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/veiculo/:id" element={<VehicleDetail />} />
-            <Route path="/checkout/:id" element={<Checkout />} />
-            <Route path="/painel" element={<Dashboard />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/painel" element={<Dashboard />} />
+              <Route path="/anunciar" element={<AddVehicle />} />
+              <Route path="/admin" element={<Admin />} />
+            </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
-            <Route path="/anunciar" element={<AddVehicle />} />
-            <Route path="/admin" element={<Admin />} />
           </Routes>
         </main>
         <Footer />

@@ -1,79 +1,78 @@
-/**
- * Cliente HTTP simples baseado em fetch.
- *
- * Centraliza: base URL, timeout, headers, tratamento de erros e
- * serialização JSON. Futuramente é o único ponto a ajustar para consumir
- * uma API REST real (adicionar auth token, interceptors, retry, etc.).
- */
+﻿import { API_CONFIG } from "./config";
 
-import { API_CONFIG } from "./config";
+const messages = {
+  400: "Confira os campos informados e tente novamente.",
+  401: "Credenciais inválidas ou sessão expirada. Entre novamente.",
+  403: "Acesso não autorizado. Tente entrar novamente.",
+  409: "E-mail ou CPF já cadastrado.",
+  429: "Muitas tentativas. Aguarde um minuto e tente novamente.",
+  500: "Ocorreu um erro interno. Tente novamente mais tarde.",
+  503: "Serviço indisponível. Tente novamente mais tarde.",
+};
 
-class ApiClient {
-  constructor(baseURL = "") {
-    this.baseURL = baseURL;
-  }
-
-  async _request(path, options = {}) {
-    const url = this.baseURL ? `${this.baseURL}${path}` : path;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
-
-    try {
-      const res = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          ...API_CONFIG.headers,
-          ...options.headers,
-        },
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "");
-        throw new Error(`API error ${res.status}: ${errorText}`);
-      }
-
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        return await res.json();
-      }
-      return await res.text();
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-
-  get(path, options = {}) {
-    return this._request(path, { ...options, method: "GET" });
-  }
-
-  post(path, body, options = {}) {
-    return this._request(path, {
-      ...options,
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-  put(path, body, options = {}) {
-    return this._request(path, {
-      ...options,
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-  }
-
-  patch(path, body, options = {}) {
-    return this._request(path, {
-      ...options,
-      method: "PATCH",
-      body: JSON.stringify(body),
-    });
-  }
-
-  delete(path, options = {}) {
-    return this._request(path, { ...options, method: "DELETE" });
+export class ApiError extends Error {
+  constructor(status, message = messages[status] || "Não foi possível concluir a solicitação.") {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
   }
 }
 
-export const apiClient = new ApiClient(API_CONFIG.baseURL);
+export class ApiClient {
+  constructor(baseURL = API_CONFIG.baseURL) {
+    this.baseURL = baseURL;
+    this.auth = null;
+  }
+
+  configureAuth(handlers) { this.auth = handlers; }
+
+  async _request(path, options = {}) {
+    const { auth = false, retryAuth = true, expectedStatus, ...fetchOptions } = options;
+    const token = auth ? this.auth?.getToken() : null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
+    let response;
+    try {
+      response = await fetch(`${this.baseURL}${path}`, {
+        ...fetchOptions,
+        credentials: "include",
+        signal: controller.signal,
+        headers: {
+          ...API_CONFIG.headers,
+          ...(fetchOptions.method === "POST" && path.startsWith("/auth/") ? { "X-UniVia-CSRF": "1" } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...fetchOptions.headers,
+        },
+      });
+    } catch {
+      throw new ApiError(0, "Não foi possível conectar ao servidor. Confira sua conexão e tente novamente.");
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (response.status === 401 && auth && retryAuth && this.auth) {
+      // A resposta pode pertencer ao token antigo de uma renovação já concluída.
+      if (!this.auth.getToken() || this.auth.getToken() === token) await this.auth.refresh();
+      return this._request(path, { ...options, retryAuth: false });
+    }
+    if (!response.ok) {
+      if (response.status === 401 && auth) this.auth?.invalidate();
+      throw new ApiError(response.status);
+    }
+    if (expectedStatus && response.status !== expectedStatus) throw new ApiError(500);
+    if (response.status === 204) return undefined;
+    try {
+      return (response.headers.get("content-type") || "").includes("application/json")
+        ? await response.json() : await response.text();
+    } catch { throw new ApiError(500); }
+  }
+
+  get(path, options = {}) { return this._request(path, { ...options, method: "GET" }); }
+  post(path, body = {}, options = {}) { return this._request(path, { ...options, method: "POST", body: JSON.stringify(body) }); }
+  put(path, body, options = {}) { return this._request(path, { ...options, method: "PUT", body: JSON.stringify(body) }); }
+  patch(path, body, options = {}) { return this._request(path, { ...options, method: "PATCH", body: JSON.stringify(body) }); }
+  delete(path, options = {}) { return this._request(path, { ...options, method: "DELETE" }); }
+}
+
+export const apiClient = new ApiClient();
+

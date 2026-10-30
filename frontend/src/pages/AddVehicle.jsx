@@ -4,15 +4,14 @@ import { BRL } from "../data/mock";
 import { useApp } from "../store/AppContext";
 
 export default function AddVehicle() {
-  const { addVehicle, flash, user, loginAs } = useApp();
+  const { addVehicle, flash, user } = useApp();
   const nav = useNavigate();
   const [f, setF] = useState({ marca: "Toyota", modelo: "Yaris", ano: 2022, categoria: "Hatch", cidade: "São Paulo · Centro", precoDiaria: 149, caucao: 1800, seguroDia: 25, cambio: "Automático", combustivel: "Flex", lugares: 5, emoji: "🚗", proprietario: "Você", aceiteAuto: true, docsOk: false, desc: "Carro revisado, econômico." });
   const set = (k, v) => setF({ ...f, [k]: v });
 
   function submit() {
-    if (!user) loginAs("Você (dono)");
-    addVehicle(f);
-    flash("Veículo enviado p/ análise (RF02). Visível após CRLV aprovado — RN02.");
+    addVehicle({ ...f, proprietario: user.nome });
+    flash("Demonstração: veículo adicionado somente nesta página, sem envio ao servidor.");
     nav("/");
   }
 

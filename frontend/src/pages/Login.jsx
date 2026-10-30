@@ -1,35 +1,33 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useApp } from "../store/AppContext";
 
 export default function Login() {
-  const { loginAs, flash } = useApp();
+  const { login, flash, isAuthLoading } = useApp();
   const nav = useNavigate();
-  const [email, setEmail] = useState("ana.souza@email.com");
-  const [pass, setPass] = useState("demo1234");
+  const location = useLocation();
+  const submitting = useRef(false);
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
   const [show, setShow] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
+    if (submitting.current || isAuthLoading) return;
     setErr("");
-    if (!/^\S+@\S+\.\S+$/.test(email)) { setErr("Informe um e-mail válido."); return; }
-    if (pass.length < 6) { setErr("A senha precisa de ao menos 6 caracteres."); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setErr("Informe um e-mail válido."); return; }
+    if (!pass || pass.length > 128) { setErr("Informe sua senha (até 128 caracteres)."); return; }
+    submitting.current = true;
     setLoading(true);
-    setTimeout(() => {
-      const name = email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      loginAs(name || "Usuário Verificado");
-      flash("Login efetuado — usuário Verificado (RN01).");
-      nav("/");
-    }, 800);
-  }
-
-  function demo() {
-    loginAs("Ana Souza");
-    flash("Entrada demo — usuário Verificado (RN01).");
-    nav("/");
+    try {
+      await login({ email, senha: pass });
+      flash("Login realizado com sucesso.");
+      const from = location.state?.from;
+      nav(typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && !['/login', '/cadastro'].includes(from.split('?')[0]) ? from : "/", { replace: true });
+    } catch (error) { setErr(error.message); }
+    finally { submitting.current = false; setLoading(false); }
   }
 
   return (
@@ -51,42 +49,35 @@ export default function Login() {
       <section className="login-form-col">
         <form className="login-card" onSubmit={submit}>
           <h2>Entrar</h2>
-          <p className="muted">Acesse para buscar, reservar ou anunciar. Somente contas verificadas operam (RN01).</p>
+          <p className="muted">Acesse sua conta. A verificação de identidade não é necessária para entrar e consultar veículos.</p>
 
-          {err && <div className="alert err">{err}</div>}
+          {location.state?.registered && <div className="alert ok" role="status">Cadastro concluído. Entre com seu e-mail e senha.</div>}
+          {err && <div className="alert err" role="alert">{err}</div>}
 
-          <div className="field"><label>E-mail</label><input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" /></div>
+          <div className="field"><label htmlFor="login-email">E-mail</label><input id="login-email" type="email" autoComplete="email" required maxLength={255} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" /></div>
           <div className="field">
-            <label>Senha</label>
+            <label htmlFor="login-password">Senha</label>
             <div className="pass-row">
-              <input type={show ? "text" : "password"} autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••••" />
+              <input id="login-password" type={show ? "text" : "password"} required maxLength={128} autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••••" />
               <button type="button" className="btn ghost small" onClick={() => setShow(!show)}>{show ? "Ocultar" : "Mostrar"}</button>
             </div>
           </div>
 
           <div className="row" style={{ marginBottom: 14 }}>
-            <label className="row" style={{ fontSize: 13, color: "var(--muted)" }}>
-              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Lembrar de mim
-            </label>
+            <span className="muted" style={{ fontSize: 13 }}>Sessão renovável por até 7 dias.</span>
             <span className="spacer" />
-            <a href="#/login" onClick={(e) => e.preventDefault()} style={{ fontSize: 13, fontWeight: 600 }}>Esqueci a senha</a>
+            <button type="button" className="btn ghost small" onClick={() => flash("Recuperação de senha ainda não disponível.")}>Esqueci a senha</button>
           </div>
 
-          <button className="btn primary" style={{ width: "100%" }} disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+          <button className="btn primary" style={{ width: "100%" }} disabled={loading || isAuthLoading}>
+            {loading ? "Entrando..." : isAuthLoading ? "Verificando sessão..." : "Entrar"}
           </button>
 
-          <div className="divider"><span>ou</span></div>
-
-          <div className="grid2">
-            <button type="button" className="btn ghost" onClick={demo}>Conta demo</button>
-            <button type="button" className="btn ghost" onClick={() => { flash("Login social indisponível no protótipo."); }}>Google / Apple</button>
-          </div>
 
           <div className="muted" style={{ fontSize: 13, marginTop: 16, textAlign: "center" }}>
-            Novo por aqui? <Link to="/cadastro" style={{ fontWeight: 700, color: "var(--ink)" }}>Criar conta e verificar KYC</Link>
+            Novo por aqui? <Link to="/cadastro" style={{ fontWeight: 700, color: "var(--ink)" }}>Criar conta</Link>
           </div>
-          <div className="muted" style={{ fontSize: 11, marginTop: 8, textAlign: "center" }}>Protótipo front-end · qualquer e-mail/senha ≥ 6 entra · dados protegidos (LGPD)</div>
+          <div className="muted" style={{ fontSize: 11, marginTop: 8, textAlign: "center" }}>Use as credenciais da sua conta UniVia.</div>
         </form>
       </section>
     </div>

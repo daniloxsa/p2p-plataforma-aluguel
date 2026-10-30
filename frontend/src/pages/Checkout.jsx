@@ -19,7 +19,7 @@ export default function Checkout() {
     setPagando(true);
     setTimeout(() => {
       updateReserva(r.id, { status: v.aceiteAuto ? "APROVADA" : "SOLICITADA" });
-      flash("Pagamento capturado + caução retida (RN05). Contrato assinado (RF07).");
+      flash("Demonstração concluída: nenhuma cobrança, retenção de caução ou assinatura real foi realizada.");
       nav("/painel");
     }, 900);
   }
