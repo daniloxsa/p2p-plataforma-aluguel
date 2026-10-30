@@ -1,0 +1,452 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
+  output          = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model anuncio {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  veiculo_id               String                     @unique(map: "uq_anuncio_ativo_veiculo", where: raw("((status)::text = 'ATIVO'::text)")) @db.Uuid
+  titulo                   String                     @db.VarChar(150)
+  descricao                String?
+  preco_diaria             Decimal                    @db.Decimal(12, 2)
+  valor_caucao             Decimal                    @default(0) @db.Decimal(12, 2)
+  preco_seguro_dia         Decimal                    @default(0) @db.Decimal(12, 2)
+  aceite_automatico        Boolean                    @default(false)
+  status                   String                     @default("RASCUNHO") @db.VarChar(30)
+  criado_em                DateTime                   @default(now()) @db.Timestamptz(6)
+  veiculo                  veiculo                    @relation(fields: [veiculo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anuncio_veiculo")
+  bloqueio_disponibilidade bloqueio_disponibilidade[]
+  reserva                  reserva[]
+
+  @@index([status, preco_diaria], map: "idx_anuncio_status_preco")
+  @@index([veiculo_id], map: "idx_anuncio_veiculo")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model assinatura_contrato {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contrato_id        String    @db.Uuid
+  usuario_id         String    @db.Uuid
+  papel              String    @db.VarChar(30)
+  status             String    @default("PENDENTE") @db.VarChar(30)
+  assinado_em        DateTime? @db.Timestamptz(6)
+  comprovante_aceite String?
+  criado_em          DateTime  @default(now()) @db.Timestamptz(6)
+  contrato           contrato  @relation(fields: [contrato_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_assinatura_contrato")
+  usuario            usuario   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_assinatura_usuario")
+
+  @@unique([contrato_id, papel], map: "uq_assinatura_contrato_papel")
+  @@unique([contrato_id, usuario_id], map: "uq_assinatura_contrato_usuario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model avaliacao {
+  id                                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id                              String   @db.Uuid
+  avaliador_id                            String   @db.Uuid
+  avaliado_id                             String   @db.Uuid
+  veiculo_id                              String?  @db.Uuid
+  nota                                    Int      @db.SmallInt
+  comentario                              String?
+  criada_em                               DateTime @default(now()) @db.Timestamptz(6)
+  usuario_avaliacao_avaliado_idTousuario  usuario  @relation("avaliacao_avaliado_idTousuario", fields: [avaliado_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_avaliacao_avaliado")
+  usuario_avaliacao_avaliador_idTousuario usuario  @relation("avaliacao_avaliador_idTousuario", fields: [avaliador_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_avaliacao_avaliador")
+  reserva                                 reserva  @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_avaliacao_reserva")
+  veiculo                                 veiculo? @relation(fields: [veiculo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_avaliacao_veiculo")
+
+  @@unique([reserva_id, avaliador_id, avaliado_id], map: "uq_avaliacao_participantes")
+  @@index([avaliado_id], map: "idx_avaliacao_avaliado")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bloqueio_disponibilidade {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  anuncio_id  String   @db.Uuid
+  data_inicio DateTime @db.Timestamptz(6)
+  data_fim    DateTime @db.Timestamptz(6)
+  motivo      String?  @db.VarChar(255)
+  criado_em   DateTime @default(now()) @db.Timestamptz(6)
+  anuncio     anuncio  @relation(fields: [anuncio_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bloqueio_anuncio")
+
+  @@index([anuncio_id, data_inicio, data_fim], map: "idx_bloqueio_anuncio_periodo")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model caucao {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id         String    @unique @db.Uuid
+  valor              Decimal   @db.Decimal(12, 2)
+  metodo             String    @db.VarChar(30)
+  status             String    @default("PENDENTE") @db.VarChar(30)
+  referencia_gateway String?   @db.VarChar(255)
+  valor_utilizado    Decimal   @default(0) @db.Decimal(12, 2)
+  retida_em          DateTime? @db.Timestamptz(6)
+  liberada_em        DateTime? @db.Timestamptz(6)
+  criada_em          DateTime  @default(now()) @db.Timestamptz(6)
+  reserva            reserva   @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_caucao_reserva")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model contrato {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id          String                @unique @db.Uuid
+  numero_contrato     String                @unique @db.VarChar(50)
+  versao              Int                   @default(1)
+  arquivo_url         String?
+  hash_documento      String?               @db.VarChar(64)
+  status              String                @default("RASCUNHO") @db.VarChar(30)
+  gerado_em           DateTime              @default(now()) @db.Timestamptz(6)
+  finalizado_em       DateTime?             @db.Timestamptz(6)
+  assinatura_contrato assinatura_contrato[]
+  reserva             reserva               @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_contrato_reserva")
+}
+
+model conversa {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id String     @unique @db.Uuid
+  criada_em  DateTime   @default(now()) @db.Timestamptz(6)
+  reserva    reserva    @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_conversa_reserva")
+  mensagem   mensagem[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model disputa {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id               String                     @db.Uuid
+  aberta_por               String                     @db.Uuid
+  motivo                   String                     @db.VarChar(30)
+  descricao                String
+  status                   String                     @default("ABERTA") @db.VarChar(30)
+  resolucao                String?
+  criada_em                DateTime                   @default(now()) @db.Timestamptz(6)
+  atualizada_em            DateTime                   @default(now()) @db.Timestamptz(6)
+  resolvida_em             DateTime?                  @db.Timestamptz(6)
+  reserva                  reserva                    @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_disputa_reserva")
+  usuario                  usuario                    @relation(fields: [aberta_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_disputa_usuario")
+  evidencia_disputa        evidencia_disputa[]
+  historico_status_disputa historico_status_disputa[]
+
+  @@index([reserva_id], map: "idx_disputa_reserva")
+  @@index([status], map: "idx_disputa_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model documento_usuario {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id       String    @db.Uuid
+  tipo             String    @db.VarChar(30)
+  arquivo_url      String?
+  numero_documento String?   @db.VarChar(50)
+  categoria_cnh    String?   @db.VarChar(5)
+  data_validade    DateTime? @db.Date
+  status_validacao String    @default("PENDENTE") @db.VarChar(30)
+  motivo_rejeicao  String?
+  validado_em      DateTime? @db.Timestamptz(6)
+  criado_em        DateTime  @default(now()) @db.Timestamptz(6)
+  usuario          usuario   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_documento_usuario")
+
+  @@index([usuario_id], map: "idx_documento_usuario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model documento_veiculo {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  veiculo_id       String    @db.Uuid
+  tipo             String    @db.VarChar(30)
+  arquivo_url      String
+  ano_exercicio    Int?      @db.SmallInt
+  status_validacao String    @default("PENDENTE") @db.VarChar(30)
+  motivo_rejeicao  String?
+  validado_em      DateTime? @db.Timestamptz(6)
+  criado_em        DateTime  @default(now()) @db.Timestamptz(6)
+  veiculo          veiculo   @relation(fields: [veiculo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_documento_veiculo")
+
+  @@index([veiculo_id], map: "idx_documento_veiculo")
+}
+
+model evidencia_disputa {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  disputa_id  String   @db.Uuid
+  enviada_por String   @db.Uuid
+  arquivo_url String
+  descricao   String?
+  criada_em   DateTime @default(now()) @db.Timestamptz(6)
+  disputa     disputa  @relation(fields: [disputa_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evidencia_disputa")
+  usuario     usuario  @relation(fields: [enviada_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_evidencia_disputa_usuario")
+
+  @@index([disputa_id], map: "idx_evidencia_disputa")
+}
+
+model evidencia_vistoria {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vistoria_id String   @db.Uuid
+  arquivo_url String
+  descricao   String?
+  criada_em   DateTime @default(now()) @db.Timestamptz(6)
+  vistoria    vistoria @relation(fields: [vistoria_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_evidencia_vistoria")
+
+  @@index([vistoria_id], map: "idx_evidencia_vistoria")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model foto_veiculo {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  veiculo_id  String   @unique(map: "uq_foto_principal_veiculo", where: raw("(principal = true)")) @db.Uuid
+  arquivo_url String
+  descricao   String?  @db.VarChar(255)
+  ordem       Int      @default(0) @db.SmallInt
+  principal   Boolean  @default(false)
+  criado_em   DateTime @default(now()) @db.Timestamptz(6)
+  veiculo     veiculo  @relation(fields: [veiculo_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_foto_veiculo")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model historico_status_disputa {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  disputa_id      String   @db.Uuid
+  alterado_por    String?  @db.Uuid
+  status_anterior String?  @db.VarChar(30)
+  status_novo     String   @db.VarChar(30)
+  observacao      String?
+  alterado_em     DateTime @default(now()) @db.Timestamptz(6)
+  disputa         disputa  @relation(fields: [disputa_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_disputa")
+  usuario         usuario? @relation(fields: [alterado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_disputa_usuario")
+
+  @@index([disputa_id, alterado_em], map: "idx_historico_disputa")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model historico_status_reserva {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id      String   @db.Uuid
+  alterado_por    String?  @db.Uuid
+  status_anterior String?  @db.VarChar(30)
+  status_novo     String   @db.VarChar(30)
+  observacao      String?
+  alterado_em     DateTime @default(now()) @db.Timestamptz(6)
+  reserva         reserva  @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_reserva")
+  usuario         usuario? @relation(fields: [alterado_por], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_usuario")
+
+  @@index([reserva_id, alterado_em], map: "idx_historico_reserva")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model mensagem {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversa_id  String    @db.Uuid
+  remetente_id String    @db.Uuid
+  conteudo     String
+  lida_em      DateTime? @db.Timestamptz(6)
+  enviada_em   DateTime  @default(now()) @db.Timestamptz(6)
+  conversa     conversa  @relation(fields: [conversa_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_mensagem_conversa")
+  usuario      usuario   @relation(fields: [remetente_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_mensagem_remetente")
+
+  @@index([conversa_id, enviada_em], map: "idx_mensagem_conversa_data")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model notificacao {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id String    @db.Uuid
+  reserva_id String?   @db.Uuid
+  tipo       String    @db.VarChar(30)
+  titulo     String    @db.VarChar(150)
+  mensagem   String
+  lida       Boolean   @default(false)
+  criada_em  DateTime  @default(now()) @db.Timestamptz(6)
+  lida_em    DateTime? @db.Timestamptz(6)
+  reserva    reserva?  @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_notificacao_reserva")
+  usuario    usuario   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_notificacao_usuario")
+
+  @@index([usuario_id, criada_em(sort: Desc)], map: "idx_notificacao_usuario_data")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pagamento {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id           String                 @db.Uuid
+  metodo               String                 @db.VarChar(30)
+  valor                Decimal                @db.Decimal(12, 2)
+  status               String                 @default("PENDENTE") @db.VarChar(30)
+  referencia_gateway   String?                @db.VarChar(255)
+  pago_em              DateTime?              @db.Timestamptz(6)
+  criado_em            DateTime               @default(now()) @db.Timestamptz(6)
+  reserva              reserva                @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pagamento_reserva")
+  transacao_financeira transacao_financeira[]
+
+  @@index([reserva_id], map: "idx_pagamento_reserva")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model repasse {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id           String                 @unique @db.Uuid
+  proprietario_id      String                 @db.Uuid
+  valor_bruto          Decimal                @db.Decimal(12, 2)
+  valor_comissao       Decimal                @db.Decimal(12, 2)
+  valor_liquido        Decimal                @db.Decimal(12, 2)
+  status               String                 @default("PENDENTE") @db.VarChar(30)
+  referencia_gateway   String?                @db.VarChar(255)
+  criado_em            DateTime               @default(now()) @db.Timestamptz(6)
+  realizado_em         DateTime?              @db.Timestamptz(6)
+  usuario              usuario                @relation(fields: [proprietario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repasse_proprietario")
+  reserva              reserva                @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repasse_reserva")
+  transacao_financeira transacao_financeira[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reserva {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  anuncio_id               String                     @db.Uuid
+  locatario_id             String                     @db.Uuid
+  data_inicio              DateTime                   @db.Timestamptz(6)
+  data_fim                 DateTime                   @db.Timestamptz(6)
+  status                   String                     @default("PENDENTE") @db.VarChar(30)
+  valor_diarias            Decimal                    @db.Decimal(12, 2)
+  valor_seguro             Decimal                    @default(0) @db.Decimal(12, 2)
+  valor_taxa               Decimal                    @default(0) @db.Decimal(12, 2)
+  valor_total              Decimal                    @db.Decimal(12, 2)
+  valor_caucao             Decimal                    @default(0) @db.Decimal(12, 2)
+  criada_em                DateTime                   @default(now()) @db.Timestamptz(6)
+  atualizada_em            DateTime                   @default(now()) @db.Timestamptz(6)
+  avaliacao                avaliacao[]
+  caucao                   caucao?
+  contrato                 contrato?
+  conversa                 conversa?
+  disputa                  disputa[]
+  historico_status_reserva historico_status_reserva[]
+  notificacao              notificacao[]
+  pagamento                pagamento[]
+  repasse                  repasse?
+  anuncio                  anuncio                    @relation(fields: [anuncio_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_anuncio")
+  usuario                  usuario                    @relation(fields: [locatario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reserva_locatario")
+  seguro                   seguro?
+  vistoria                 vistoria[]
+
+  @@index([anuncio_id], map: "idx_reserva_anuncio")
+  @@index([locatario_id], map: "idx_reserva_locatario")
+  @@index([data_inicio, data_fim], map: "idx_reserva_periodo")
+  @@index([status], map: "idx_reserva_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model seguro {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id       String   @unique @db.Uuid
+  seguradora       String   @db.VarChar(150)
+  numero_apolice   String?  @db.VarChar(100)
+  valor_premio     Decimal  @db.Decimal(12, 2)
+  inicio_cobertura DateTime @db.Timestamptz(6)
+  fim_cobertura    DateTime @db.Timestamptz(6)
+  status           String   @default("PENDENTE") @db.VarChar(30)
+  criado_em        DateTime @default(now()) @db.Timestamptz(6)
+  reserva          reserva  @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seguro_reserva")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model transacao_financeira {
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pagamento_id       String?    @db.Uuid
+  repasse_id         String?    @db.Uuid
+  tipo               String     @db.VarChar(30)
+  valor              Decimal    @db.Decimal(12, 2)
+  status             String     @default("PENDENTE") @db.VarChar(30)
+  referencia_externa String?    @db.VarChar(255)
+  descricao          String?
+  criada_em          DateTime   @default(now()) @db.Timestamptz(6)
+  processada_em      DateTime?  @db.Timestamptz(6)
+  pagamento          pagamento? @relation(fields: [pagamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transacao_pagamento")
+  repasse            repasse?   @relation(fields: [repasse_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transacao_repasse")
+
+  @@index([pagamento_id], map: "idx_transacao_pagamento")
+  @@index([repasse_id], map: "idx_transacao_repasse")
+}
+
+model usuario {
+  id                                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome                                      String                     @db.VarChar(150)
+  cpf                                       String                     @unique @db.VarChar(11)
+  email                                     String                     @unique @db.VarChar(255)
+  telefone                                  String?                    @db.VarChar(20)
+  senha_hash                                String
+  status                                    String                     @default("PENDENTE_VERIFICACAO") @db.VarChar(30)
+  criado_em                                 DateTime                   @default(now()) @db.Timestamptz(6)
+  assinatura_contrato                       assinatura_contrato[]
+  avaliacao_avaliacao_avaliado_idTousuario  avaliacao[]                @relation("avaliacao_avaliado_idTousuario")
+  avaliacao_avaliacao_avaliador_idTousuario avaliacao[]                @relation("avaliacao_avaliador_idTousuario")
+  disputa                                   disputa[]
+  documento_usuario                         documento_usuario[]
+  evidencia_disputa                         evidencia_disputa[]
+  historico_status_disputa                  historico_status_disputa[]
+  historico_status_reserva                  historico_status_reserva[]
+  mensagem                                  mensagem[]
+  notificacao                               notificacao[]
+  repasse                                   repasse[]
+  reserva                                   reserva[]
+  veiculo                                   veiculo[]
+  verificacao_kyc                           verificacao_kyc[]
+  vistoria                                  vistoria[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model veiculo {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proprietario_id    String              @db.Uuid
+  placa              String              @unique @db.VarChar(7)
+  marca              String              @db.VarChar(80)
+  modelo             String              @db.VarChar(100)
+  ano_fabricacao     Int                 @db.SmallInt
+  ano_modelo         Int                 @db.SmallInt
+  categoria          String              @db.VarChar(50)
+  cambio             String?             @db.VarChar(30)
+  combustivel        String?             @db.VarChar(30)
+  quantidade_lugares Int?                @db.SmallInt
+  status_cadastro    String              @default("PENDENTE") @db.VarChar(30)
+  criado_em          DateTime            @default(now()) @db.Timestamptz(6)
+  anuncio            anuncio?
+  avaliacao          avaliacao[]
+  documento_veiculo  documento_veiculo[]
+  foto_veiculo       foto_veiculo?
+  usuario            usuario             @relation(fields: [proprietario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_veiculo_proprietario")
+
+  @@index([proprietario_id], map: "idx_veiculo_proprietario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model verificacao_kyc {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id         String    @db.Uuid
+  tipo               String    @db.VarChar(30)
+  status             String    @default("PENDENTE") @db.VarChar(30)
+  provedor           String?   @db.VarChar(100)
+  referencia_externa String?   @db.VarChar(255)
+  motivo_rejeicao    String?
+  realizada_em       DateTime? @db.Timestamptz(6)
+  criada_em          DateTime  @default(now()) @db.Timestamptz(6)
+  usuario            usuario   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_kyc_usuario")
+
+  @@index([usuario_id], map: "idx_kyc_usuario")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model vistoria {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reserva_id         String               @db.Uuid
+  responsavel_id     String               @db.Uuid
+  tipo               String               @db.VarChar(30)
+  quilometragem      Int?
+  nivel_combustivel  Int?                 @db.SmallInt
+  observacoes        String?
+  realizada_em       DateTime             @default(now()) @db.Timestamptz(6)
+  evidencia_vistoria evidencia_vistoria[]
+  reserva            reserva              @relation(fields: [reserva_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_vistoria_reserva")
+  usuario            usuario              @relation(fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_vistoria_responsavel")
+
+  @@index([reserva_id], map: "idx_vistoria_reserva")
+}
