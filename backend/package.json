@@ -5,6 +5,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "auth:env": "node scripts/configure-auth-env.mjs",
+    "auth:db:inspect": "node scripts/inspect-auth-db.mjs",
+    "auth:db:apply": "prisma db execute --file prisma/sql/20261030_sessao_usuario.sql",
+    "test:postgres": "node --import tsx test/auth-postgres.smoke.mjs",
     "test": "node --import tsx --test test/*.test.mjs",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
@@ -16,14 +20,22 @@
   "dependencies": {
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
+    "@nestjs/jwt": "^12.0.3",
     "@nestjs/platform-express": "^12.0.0",
+    "@nestjs/throttler": "^6.7.1",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "argon2": "^0.45.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
     "@types/node": "^22.14.0",
     "prisma": "^7.10.1",
     "tsx": "^4.19.0",

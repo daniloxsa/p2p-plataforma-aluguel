@@ -369,6 +369,7 @@ model transacao_financeira {
 }
 
 model usuario {
+  sessao_usuario                            sessao_usuario[]
   id                                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome                                      String                     @db.VarChar(150)
   cpf                                       String                     @unique @db.VarChar(11)
@@ -392,6 +393,19 @@ model usuario {
   veiculo                                   veiculo[]
   verificacao_kyc                           verificacao_kyc[]
   vistoria                                  vistoria[]
+}
+
+model sessao_usuario {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id  String    @db.Uuid
+  token_hash  String    @unique @db.VarChar(64)
+  criado_em   DateTime  @default(now()) @db.Timestamptz(6)
+  expira_em   DateTime  @db.Timestamptz(6)
+  revogado_em DateTime? @db.Timestamptz(6)
+  usuario     usuario   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sessao_usuario")
+
+  @@index([usuario_id], map: "idx_sessao_usuario")
+  @@index([expira_em], map: "idx_sessao_expira")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

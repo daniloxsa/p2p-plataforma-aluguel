@@ -1,4 +1,6 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { setupApp } from './setup-app.ts';
 import { AppModule } from './app.module.ts';
 import * as dotenv from 'dotenv';
 
@@ -9,15 +11,8 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Prefixo global para todas as rotas da API: /api/*
-  app.setGlobalPrefix('api');
-
-  // CORS com origens configuradas por variavel de ambiente (sem permissao indiscriminada).
-  const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-  app.enableCors({ origin: corsOrigins });
+  setupApp(app);
+  app.enableShutdownHooks();
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
