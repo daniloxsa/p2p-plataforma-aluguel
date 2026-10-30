@@ -24,7 +24,7 @@ export default function Register() {
       <div className="panel">
         <h2 style={{ marginTop: 0 }}>Verificação de identidade — KYC (UC01 · RF01)</h2>
         <div className="row">
-          {[1, 2, 3].map((s) => <span key={s} className={`tag ${step >= s ? "active" : ""}`} style={step >= s ? { background: "var(--ink)", color: "#fff" } : {}}>Etapa {s}</span>)}
+          {[1, 2, 3].map((s) => <span key={s} className={`tag ${step >= s ? "active" : ""}`} style={step >= s ? { background: "var(--ink)", color: "var(--on-ink)" } : {}}>Etapa {s}</span>)}
         </div>
         {step === 1 && (<>
           <div className="field"><label>Nome completo</label><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>

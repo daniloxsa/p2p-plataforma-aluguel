@@ -42,7 +42,7 @@ export default function VehicleDetail() {
       <div style={{ height: 12 }} />
       <div className="split">
         <div className="panel">
-          <div className="car-mark" style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".18em", color: "#a8a8a8", background: "#f3f3f3", border: "1px solid var(--line)", borderRadius: 4, padding: 32, textAlign: "center" }}>{v.marca} {v.modelo} · {v.ano}</div>
+          <div className="car-mark" style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".18em", color: "var(--faint)", background: "var(--field)", border: "1px solid var(--line)", borderRadius: 4, padding: 32, textAlign: "center" }}>{v.marca} {v.modelo} · {v.ano}</div>
           <h2 style={{ margin: "12px 0 6px" }}>{v.marca} {v.modelo} · {v.ano}</h2>
           <div className="muted">{v.cidade} · {v.proprietario} · {v.score.toFixed(1)} ({v.avaliacoes} avaliações)</div>
           <div className="row" style={{ marginTop: 10 }}>

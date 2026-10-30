@@ -84,7 +84,7 @@ export default function Login() {
           </div>
 
           <div className="muted" style={{ fontSize: 13, marginTop: 16, textAlign: "center" }}>
-            Novo por aqui? <Link to="/cadastro" style={{ fontWeight: 700, color: "#000" }}>Criar conta e verificar KYC</Link>
+            Novo por aqui? <Link to="/cadastro" style={{ fontWeight: 700, color: "var(--ink)" }}>Criar conta e verificar KYC</Link>
           </div>
           <div className="muted" style={{ fontSize: 11, marginTop: 8, textAlign: "center" }}>Protótipo front-end · qualquer e-mail/senha ≥ 6 entra · dados protegidos (LGPD)</div>
         </form>

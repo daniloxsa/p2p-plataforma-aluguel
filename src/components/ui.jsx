@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useApp } from "../store/AppContext";
 
 export function Header() {
-  const { user, logout } = useApp();
+  const { user, logout, theme, toggleTheme } = useApp();
   const [open, setOpen] = useState(false);
   const nav = useNavigate();
   return (
@@ -19,6 +19,19 @@ export function Header() {
             <NavLink to="/painel" className={({ isActive }) => isActive ? "active" : ""}>Painel</NavLink>
             <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}>Admin</NavLink>
           </nav>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+            aria-pressed={theme === "dark"}
+            title={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {theme === "dark" ? <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></> : <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />}
+            </svg>
+            <span>Modo escuro</span>
+          </button>
           {user ? (
             <div className="row" style={{ marginLeft: "auto" }}>
               <span className="tag">{user.nome} · {user.status}</span>
@@ -47,7 +60,7 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="container">
-        <strong style={{ color: "#000" }}>DriveShare P2P — protótipo front-end</strong>
+        <strong style={{ color: "var(--ink)" }}>DriveShare P2P — protótipo front-end</strong>
         <p>React + Vite · responsivo · dados de demonstração. RN01 verificação KYC · RN03 sem sobreposição · RN05 caução isolada · RN09 repasse pós-devolução · RN10 disputa congela valores.</p>
         <p>Fluxo: SOLICITADA → APROVADA → EM_ANDAMENTO → CONCLUÍDA · EM_DISPUTA / CANCELADA / RECUSADA</p>
       </div>

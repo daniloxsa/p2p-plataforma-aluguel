@@ -32,7 +32,7 @@ export default function Checkout() {
         <div className="panel">
           <h2 style={{ marginTop: 0 }}>Contrato digital — {r.id} (RF07)</h2>
           <div className="muted">Locador: {v.proprietario} · Locatário: {r.locatario} · {v.marca} {v.modelo} · {r.inicio} → {r.fim}</div>
-          <div className="panel" style={{ background: "#f8fafc", marginTop: 12, fontSize: 14 }}>
+          <div className="panel" style={{ background: "var(--field)", marginTop: 12, fontSize: 14 }}>
             <p><strong>Cláusula 1.</strong> Objeto: locação P2P do veículo {v.marca} {v.modelo} ({v.ano}), com seguro P2P diário (RF13) e vistoria digital obrigatória na retirada e devolução (RF08).</p>
             <p><strong>Cláusula 2.</strong> Caução de {BRL(r.caucao)} será apenas <u>retida/autorizada</u> no cartão, sem captura (RN05), estornada em 24h se sem avaria (RN06).</p>
             <p><strong>Cláusula 3.</strong> Repasse ao proprietário (líquido da comissão) somente após devolução e encerramento sem pendências (RN09). Disputa ativa congela repasse e caução (RN10).</p>

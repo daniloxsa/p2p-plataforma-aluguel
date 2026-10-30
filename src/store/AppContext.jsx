@@ -1,10 +1,18 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo, useState } from "react";
+import { applyTheme } from "./theme";
 import { reservasSeed, vehiclesSeed, overlap } from "../data/mock";
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
 
 export function AppProvider({ children }) {
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || "light");
+  useLayoutEffect(() => applyTheme(theme), [theme]);
+
+  function toggleTheme() {
+    setTheme((current) => current === "dark" ? "light" : "dark");
+  }
+
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("ds_user")) || null; } catch { return null; }
   });
@@ -57,9 +65,9 @@ export function AppProvider({ children }) {
   }
 
   const value = useMemo(() => ({
-    user, setUser, loginAs, logout, vehicles, setVehicles, addVehicle,
+    theme, toggleTheme, user, setUser, loginAs, logout, vehicles, setVehicles, addVehicle,
     reservas, createReserva, updateReserva, hasConflict, toast, flash,
-  }), [user, vehicles, reservas, toast]);
+  }), [theme, user, vehicles, reservas, toast]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
