@@ -12,6 +12,7 @@ export default function VehiclePhotos({ vehicle }) {
   const pending = useRef(false);
   const previews = useRef([]);
   const mounted = useRef(false);
+  const fileInput = useRef(null);
   const disabled = Boolean(vehicle.desativado_em);
   const load = useCallback(async () => {
     const rows = await api.list(vehicle.id);
@@ -60,42 +61,73 @@ export default function VehiclePhotos({ vehicle }) {
     [ids[index], ids[index + delta]] = [ids[index + delta], ids[index]];
     void action(() => api.reorder(vehicle.id, ids), 'Ordem atualizada.');
   }
-  return <section aria-label="Gerenciar fotos" id="fotos" style={{ marginTop: 24 }}>
-    <h3>Gerenciar fotos <small>({photos.length}/10)</small></h3>
-    <p className="muted">JPEG, PNG ou WebP · até 5 MB por foto · {Math.max(0, 10 - photos.length - selected.length)} vagas restantes. As fotos não publicam o veículo.</p>
+  const remaining = Math.max(0, 10 - photos.length - selected.length);
+  return <section aria-label="Gerenciar fotos" id="fotos" className="vehicle-photos" aria-busy={loading || busy}>
+    <h3>Fotos do veículo</h3>
+    <p className="muted vehicle-photos-intro">{photos.length} de 10 fotos · Defina a imagem de capa para identificar seu veículo.</p>
     {disabled && <div className="alert warn">Veículo desativado. Fotos preservadas para consulta privada.</div>}
     {error && <div className="alert err" role="alert">{error} <button className="btn small" disabled={busy} onClick={() => { setError(''); load().catch(err => setError(err.message)); }}>Atualizar galeria</button></div>}
     {message && <p className="alert ok" role="status">{message}</p>}
     {loading && <p role="status">Carregando fotos...</p>}
-    {!loading && !photos.length && <p>Nenhuma foto cadastrada.</p>}
-    {!disabled && <fieldset disabled={busy || loading} style={{ border: 0, padding: 0 }}>
-      <label>Selecionar imagens <input aria-label="Selecionar imagens" type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={choose} disabled={photos.length + selected.length >= 10} /></label>
+    {!disabled && <fieldset disabled={busy || loading} className="vehicle-photos-upload">
+      <legend className="vehicle-photos-sr-only">Adicionar fotos ao veículo</legend>
+      <input ref={fileInput} className="vehicle-photos-sr-only" aria-label="Selecionar imagens" type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={choose} disabled={remaining === 0} />
+      <div className="vehicle-photos-upload-bar">
+        <span className="vehicle-photos-upload-icon" aria-hidden="true">+</span>
+        <div className="vehicle-photos-upload-copy">
+          <h4>Adicionar fotos</h4>
+          <p className="muted">Escolha imagens JPEG, PNG ou WebP · até 5 MB por foto.</p>
+        </div>
+        <button type="button" className="btn primary" disabled={remaining === 0} onClick={() => fileInput.current?.click()}>Selecionar imagens</button>
+      </div>
+      <p className="muted vehicle-photos-capacity">{remaining === 0 ? 'Limite de 10 imagens atingido.' : `${remaining} vagas restantes.`}</p>
       {selected.length > 0 && <>
-        <div style={grid}>{selected.map(item => <figure key={item.key} style={{ margin: 0 }}>
-          <img src={item.url} alt={`Prévia de ${item.file.name}`} style={imageStyle} />
-          <figcaption>{item.file.name}</figcaption>
-          <button className="btn small" onClick={() => { URL.revokeObjectURL(item.url); updateSelection(selected.filter(s => s.key !== item.key)); }}>Remover seleção de {item.file.name}</button>
+        <div className="vehicle-photos-selection-heading">
+          <h4>Selecionadas para envio <span className="muted">({selected.length})</span></h4>
+          <span className="muted">Confira as imagens antes de enviar.</span>
+        </div>
+        <div className="vehicle-photos-grid">{selected.map(item => <figure key={item.key} className="vehicle-photo-card">
+          <div className="vehicle-photo-image"><img src={item.url} alt={`Prévia de ${item.file.name}`} /></div>
+          <figcaption className="vehicle-photo-caption">
+            <span className="vehicle-photo-filename" title={item.file.name}>{item.file.name}</span>
+            <button type="button" className="btn ghost small" aria-label={`Remover seleção de ${item.file.name}`} onClick={() => { URL.revokeObjectURL(item.url); updateSelection(selected.filter(s => s.key !== item.key)); }}>Remover</button>
+          </figcaption>
         </figure>)}</div>
-        <button className="btn primary" disabled={busy} onClick={() => action(async () => { await api.upload(vehicle.id, selected.map(item => item.file)); clearSelection(); }, 'Fotos enviadas.')}>Enviar {selected.length} foto(s)</button>
+        <div className="vehicle-photos-send"><button type="button" className="btn primary" disabled={busy} onClick={() => action(async () => { await api.upload(vehicle.id, selected.map(item => item.file)); clearSelection(); }, 'Fotos enviadas.')}>Enviar {selected.length} foto(s)</button></div>
       </>}
     </fieldset>}
     {busy && <p role="status">Processando fotos. Aguarde...</p>}
-    <div style={grid}>{photos.map((photo, index) => <figure key={photo.id} style={{ margin: 0 }}>
-      <img src={photo.url} alt={photo.descricao || `Foto ${index + 1} do veículo`} referrerPolicy="no-referrer" style={imageStyle} />
-      <figcaption>Foto {index + 1} {photo.principal && <strong className="tag">Principal</strong>}</figcaption>
-      {!disabled && <div>
-        <button className="btn small" disabled={busy || photo.principal} onClick={() => action(() => api.principal(vehicle.id, photo.id), 'Foto principal atualizada.')}>Definir principal</button>
-        <button className="btn small" aria-label={`Mover foto ${index + 1} para antes`} disabled={busy || index === 0} onClick={() => move(index, -1)}>←</button>
-        <button className="btn small" aria-label={`Mover foto ${index + 1} para depois`} disabled={busy || index === photos.length - 1} onClick={() => move(index, 1)}>→</button>
-        <button className="btn danger small" disabled={busy} onClick={() => setConfirm(photo)}>Excluir foto {index + 1}</button>
-      </div>}
-    </figure>)}</div>
+    <div className="vehicle-photos-gallery-heading">
+      <h4>Galeria</h4>
+      <p className="muted">{disabled ? 'Fotos salvas do veículo.' : 'Organize a ordem das fotos ou selecione uma nova capa.'}</p>
+    </div>
+    {!loading && !photos.length && <p className="muted">Nenhuma foto cadastrada.</p>}
+    <div className="vehicle-photos-grid">{photos.map((photo, index) => <figure key={photo.id} className={`vehicle-photo-card${photo.principal ? ' vehicle-photo-card-primary' : ''}`}>
+      <div className="vehicle-photo-image">
+        <img src={photo.url} alt={photo.descricao || `Foto ${index + 1} do veículo`} referrerPolicy="no-referrer" />
+        {photo.principal && <strong className="vehicle-photo-primary"><span aria-hidden="true">★ </span>Principal</strong>}
+      </div>
+      <figcaption className="vehicle-photo-caption">
+        <strong>Foto {index + 1}</strong>
+        {!disabled && <div className="vehicle-photo-actions">
+          <button type="button" className="btn ghost small vehicle-photo-cover" disabled={busy || photo.principal} onClick={() => action(() => api.principal(vehicle.id, photo.id), 'Foto principal atualizada.')}>Definir principal</button>
+          <button type="button" className="btn ghost small vehicle-photo-move" aria-label={`Mover foto ${index + 1} para antes`} disabled={busy || index === 0} onClick={() => move(index, -1)}>←</button>
+          <button type="button" className="btn ghost small vehicle-photo-move" aria-label={`Mover foto ${index + 1} para depois`} disabled={busy || index === photos.length - 1} onClick={() => move(index, 1)}>→</button>
+          <button type="button" className="btn danger small" aria-label={`Excluir foto ${index + 1}`} disabled={busy} onClick={() => setConfirm(photo)}>Excluir</button>
+        </div>}
+      </figcaption>
+    </figure>)}
+      {!disabled && !loading && remaining > 0 && <button type="button" className="vehicle-photo-add" disabled={busy} onClick={() => fileInput.current?.click()}>
+        <span className="vehicle-photo-add-icon" aria-hidden="true">+</span>
+        <strong>Adicione mais fotos</strong>
+        <span className="muted">Até {remaining} {remaining === 1 ? 'imagem adicional' : 'imagens adicionais'}</span>
+      </button>}
+    </div>
     {confirm && <div role="dialog" aria-modal="true" aria-label="Excluir foto" className="alert warn">
       <p>Excluir esta foto do veículo?</p>
       <button className="btn danger" disabled={busy} onClick={() => action(async () => { await api.remove(vehicle.id, confirm.id); setConfirm(null); }, 'Foto excluída.')}>Confirmar exclusão</button>
       <button className="btn ghost" disabled={busy} onClick={() => setConfirm(null)}>Cancelar</button>
     </div>}
+    <p className="vehicle-photos-note muted">As fotos ficam salvas na sua conta. Adicioná-las não publica automaticamente o veículo.</p>
   </section>;
 }
-const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, margin: '16px 0' };
-const imageStyle = { width: '100%', height: 150, objectFit: 'cover', borderRadius: 10 };
