@@ -1,10 +1,13 @@
+import MyVehicles from "../components/MyVehicles";
+import { useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { BRL } from "../data/mock";
 import { useApp } from "../store/AppContext";
 
 export default function Dashboard() {
   const { reservas, vehicles, updateReserva, flash, user } = useApp();
-  const [tab, setTab] = useState("reservas");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get("aba") === "veiculos" ? "veiculos" : "reservas");
   const [chatMsg, setChatMsg] = useState({});
   const [nota, setNota] = useState(5);
 
@@ -86,20 +89,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {tab === "veiculos" && (
-        <div className="panel">
-          <h3 style={{ marginTop: 0 }}>Meus anúncios (RF02 · RN02)</h3>
-          <table className="table">
-            <thead><tr><th>Veículo</th><th>Status</th><th>Diária</th><th>Docs</th></tr></thead>
-            <tbody>
-              {vehicles.slice(0, 4).map((v) => (
-                <tr key={v.id}><td>{v.marca} {v.modelo}</td><td><span className={`status st-${v.status}`}>{v.status}</span></td><td>{BRL(v.precoDiaria)}</td><td>{v.docsOk ? "CRLV ok" : "Em análise"}</td></tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="alert info">RN02: veículo só aparece na busca após CRLV aprovado via OCR + consulta de multas (RF03).</div>
-        </div>
-      )}
+      {tab === "veiculos" && <MyVehicles key={user?.id} />}
 
       {tab === "financeiro" && (
         <div className="split">

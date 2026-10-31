@@ -116,13 +116,6 @@ export function AppProvider({ children }) {
     setReservas((prev) => prev.map((r) => (r.id === id ? atualizada : r)));
   }
 
-  function addVehicle(v) {
-    // Mantido localmente (anúncio de veículo). Futuro: chamar vehicleService.criar(v)
-    const id = "v" + (vehicles.length + 1) + "-" + Date.now().toString(36);
-    const novo = { ...v, id, score: 5.0, avaliacoes: 0, status: "DISPONIVEL" };
-    setVehicles((prev) => [novo, ...prev]);
-  }
-
   const value = {
     theme,
     toggleTheme,
@@ -132,7 +125,6 @@ export function AppProvider({ children }) {
     updateProfile,
     vehicles,
     setVehicles,
-    addVehicle,
     reservas,
     loading,
     createReserva,

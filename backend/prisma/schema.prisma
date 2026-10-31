@@ -410,6 +410,7 @@ model sessao_usuario {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model veiculo {
+  desativado_em      DateTime?           @db.Timestamptz(6)
   id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   proprietario_id    String              @db.Uuid
   placa              String              @unique @db.VarChar(7)

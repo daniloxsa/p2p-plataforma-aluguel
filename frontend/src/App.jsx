@@ -9,6 +9,7 @@ import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AddVehicle from "./pages/AddVehicle";
+import OwnerVehicle from "./pages/OwnerVehicle";
 import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -31,7 +32,7 @@ function ScrollTop() {
 function DemoNotice() {
   const { pathname } = useLocation();
   if (["/login", "/cadastro"].includes(pathname)) return null;
-  return <div className="container"><div className="alert info">Veículos, anúncios, reservas, pagamentos e painel são demonstrações locais, sem persistência no servidor ou cobranças reais.</div></div>;
+  return <div className="container"><div className="alert info">O cadastro e a aba Meus veículos usam dados reais da sua conta. Os anúncios da Home, reservas, pagamentos e demais áreas do painel são demonstrações, sem cobranças reais.</div></div>;
 }
 
 export default function App() {
@@ -50,6 +51,8 @@ export default function App() {
               <Route path="/painel" element={<Dashboard />} />
               <Route path="/perfil" element={<Profile />} />
               <Route path="/anunciar" element={<AddVehicle />} />
+              <Route path="/meus-veiculos/:id" element={<OwnerVehicle />} />
+              <Route path="/meus-veiculos/:id/editar" element={<OwnerVehicle editing />} />
               <Route path="/admin" element={<Admin />} />
             </Route>
             <Route path="/login" element={<Login />} />

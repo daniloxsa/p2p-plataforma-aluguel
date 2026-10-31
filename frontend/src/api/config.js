@@ -4,6 +4,6 @@
   headers: { "Content-Type": "application/json" },
 };
 
-// Veículos e reservas ainda não têm endpoints implementados.
+// Anúncios públicos e reservas continuam demonstrativos. O CRUD privado usa veiculos.js.
 export function isMockMode() { return true; }
 
