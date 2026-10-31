@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { veiculosApi } from '../api/veiculos';
 import { useApp } from '../store/AppContext';
 import VehicleForm from '../components/VehicleForm';
+import VehiclePhotos from '../components/VehiclePhotos';
 export default function OwnerVehicle({ editing = false }) {
   const { id } = useParams();
   const { user, flash } = useApp();
@@ -35,6 +36,8 @@ export default function OwnerVehicle({ editing = false }) {
       <p>Status: {v.desativado_em ? 'DESATIVADO' : v.status_cadastro}</p>
       <p>{v.anuncio ? `Anúncio: ${v.anuncio.titulo} (${v.anuncio.status})` : 'Sem anúncio publicado.'}</p>
       {!v.desativado_em && <Link className="btn" to={`/meus-veiculos/${v.id}/editar`}>Editar</Link>}
+      <a className="btn" href="#fotos" onClick={event => { event.preventDefault(); document.getElementById('fotos')?.scrollIntoView({ behavior: 'smooth' }); }}>Gerenciar fotos</a>
+      <VehiclePhotos key={`${user?.id}:${v.id}`} vehicle={v} />
     </>)}
   </div></div>;
 }

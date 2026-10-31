@@ -27,10 +27,12 @@ export class ApiClient {
   configureAuth(handlers) { this.auth = handlers; }
 
   async _request(path, options = {}) {
-    const { auth = false, retryAuth = true, expectedStatus, ...fetchOptions } = options;
+    const { auth = false, retryAuth = true, expectedStatus, timeout = API_CONFIG.timeout, ...fetchOptions } = options;
     const token = auth ? this.auth?.getToken() : null;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const headers = { ...API_CONFIG.headers, ...fetchOptions.headers };
+    if (fetchOptions.body instanceof FormData) delete headers['Content-Type'];
     let response;
     try {
       response = await fetch(`${this.baseURL}${path}`, {
@@ -38,10 +40,9 @@ export class ApiClient {
         credentials: "include",
         signal: controller.signal,
         headers: {
-          ...API_CONFIG.headers,
+          ...headers,
           ...(fetchOptions.method === "POST" && path.startsWith("/auth/") ? { "X-UniVia-CSRF": "1" } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...fetchOptions.headers,
         },
       });
     } catch {
@@ -69,6 +70,7 @@ export class ApiClient {
 
   get(path, options = {}) { return this._request(path, { ...options, method: "GET" }); }
   post(path, body = {}, options = {}) { return this._request(path, { ...options, method: "POST", body: JSON.stringify(body) }); }
+  multipart(path, body, options = {}) { return this._request(path, { ...options, method: 'POST', body, timeout: 240000 }); }
   put(path, body, options = {}) { return this._request(path, { ...options, method: "PUT", body: JSON.stringify(body) }); }
   patch(path, body, options = {}) { return this._request(path, { ...options, method: "PATCH", body: JSON.stringify(body) }); }
   delete(path, options = {}) { return this._request(path, { ...options, method: "DELETE" }); }

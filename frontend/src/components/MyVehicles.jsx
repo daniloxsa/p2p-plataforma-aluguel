@@ -19,6 +19,13 @@ export default function MyVehicles() {
       .catch(err => { if (active) setState({ error: err.message }); });
     return () => { active = false; };
   }, [page, revision, user?.id]);
+  useEffect(() => {
+    const expires = Math.min(...(state.data?.items || []).map(v => Date.parse(v.foto_principal?.expira_em)).filter(Number.isFinite));
+    const refresh = () => { if (!pending.current) setRevision(n => n + 1); };
+    const timer = Number.isFinite(expires) ? setTimeout(refresh, Math.max(10000, expires - Date.now() - 30000)) : null;
+    window.addEventListener('focus', refresh);
+    return () => { clearTimeout(timer); window.removeEventListener('focus', refresh); };
+  }, [state.data]);
   async function deactivate() {
     if (pending.current) return;
     pending.current = true; setBusy(true); setError('');
@@ -34,10 +41,11 @@ export default function MyVehicles() {
     {state.loading && <p role="status">Carregando meus veículos...</p>}
     {state.error && <div className="alert err" role="alert">{state.error} <button className="btn small" onClick={() => setRevision(n => n + 1)}>Tentar novamente</button></div>}
     {state.data && <>
+      {state.data.fotos_indisponiveis && <div className="alert warn">Miniaturas indisponíveis no momento. Os dados dos veículos continuam disponíveis.</div>}
       {!state.data.items.length ? <p>Nenhum veículo nesta página.</p> : <div style={{ overflowX: 'auto' }}><table className="table">
         <thead><tr><th>Veículo</th><th>Placa</th><th>Status</th><th>Anúncio</th><th>Ações</th></tr></thead>
         <tbody>{state.data.items.map(v => <tr key={v.id}>
-          <td>{v.marca} {v.modelo}<br /><small>{v.ano_modelo} · {v.categoria}</small></td><td>{v.placa}</td>
+          <td>{v.foto_principal ? <img src={v.foto_principal.url} alt={`Foto principal de ${v.marca} ${v.modelo}`} referrerPolicy="no-referrer" style={{ width: 80, height: 55, objectFit: 'cover', borderRadius: 8 }} /> : <span className="muted">Sem foto</span>}<br />{v.marca} {v.modelo}<br /><small>{v.ano_modelo} · {v.categoria}</small></td><td>{v.placa}</td>
           <td>{v.desativado_em ? 'DESATIVADO' : v.status_cadastro}</td>
           <td>{v.anuncio ? `${v.anuncio.status} · ${BRL(Number(v.anuncio.preco_diaria))}/dia` : 'Sem anúncio'}</td>
           <td><Link className="btn small" to={`/meus-veiculos/${v.id}`}>Visualizar</Link>{!v.desativado_em && <>

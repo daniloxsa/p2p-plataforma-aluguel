@@ -65,6 +65,15 @@ it('handles empty lists and session errors with retry', async () => {
   mine.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20 });
   fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' })); expect(await screen.findByText('Nenhum veículo nesta página.')).toBeTruthy();
 });
+it('shows a signed primary thumbnail and a placeholder without per-vehicle photo requests', async () => {
+  vi.spyOn(veiculosApi, 'mine').mockResolvedValue({ items: [
+    { ...vehicle, foto_principal: { url: 'https://test.invalid/temporary' } },
+    { ...vehicle, id: 'second', placa: 'DEF5678', foto_principal: null },
+  ], total: 2, page: 1, limit: 20 });
+  render(<MemoryRouter><MyVehicles /></MemoryRouter>);
+  expect(await screen.findByAltText('Foto principal de Toyota Yaris')).toBeTruthy();
+  expect(screen.getByText('Sem foto')).toBeTruthy();
+});
 it('vehicle API reuses the existing authenticated client and its refresh flow', async () => {
   let token = 'old'; const refresh = vi.fn(async () => { token = 'new'; }); const invalidate = vi.fn();
   const previous = apiClient.auth;

@@ -16,6 +16,7 @@ import { CsrfGuard } from '../src/auth/guards/csrf.guard.ts';
 import { UsuariosService } from '../src/usuarios/usuarios.service.ts';
 import { UsuariosController } from '../src/usuarios/usuarios.controller.ts';
 import { PrismaService } from '../src/prisma/prisma.service.ts';
+import { FotosService } from '../src/veiculos/fotos/fotos.service.ts';
 import { setupApp } from '../src/setup-app.ts';
 import { AppModule } from '../src/app.module.ts';
 
@@ -338,6 +339,7 @@ test('AppModule registers protected profile routes without connecting to Postgre
   process.env.REFRESH_TOKEN_EXPIRES_DAYS = '7';
   t.mock.method(PrismaService.prototype, 'onModuleInit', async () => {});
   t.mock.method(PrismaService.prototype, 'onModuleDestroy', async () => {});
+  t.mock.method(FotosService.prototype, 'onModuleInit', async () => {});
   let app;
   try {
     app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
