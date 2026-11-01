@@ -4,6 +4,8 @@ import { veiculosApi } from '../api/veiculos';
 import { useApp } from '../store/AppContext';
 import VehicleForm from '../components/VehicleForm';
 import VehiclePhotos from '../components/VehiclePhotos';
+import VehicleDocuments from '../components/VehicleDocuments';
+import { anuncioStatus } from '../services/anuncioValidation';
 export default function OwnerVehicle({ editing = false }) {
   const { id } = useParams();
   const { user, flash } = useApp();
@@ -31,6 +33,7 @@ export default function OwnerVehicle({ editing = false }) {
       <VehicleForm key={v.id} initial={v} editing onSave={save} />
     </> : <>
       <header className="owner-vehicle-header">
+        {v.revisao?.justificativa && <div className="alert warn">Motivo da rejeição: {v.revisao.justificativa}</div>}
         <div className="owner-vehicle-title">
           <h2>{v.marca} {v.modelo}</h2>
           <span className="status owner-vehicle-status">{v.desativado_em ? 'DESATIVADO' : v.status_cadastro}</span>
@@ -40,17 +43,18 @@ export default function OwnerVehicle({ editing = false }) {
           <li>{v.cambio}</li><li>{v.combustivel}</li><li>{v.quantidade_lugares} lugares</li>
         </ul>
         <div className="owner-vehicle-tools">
-          <p className="muted">{v.anuncio ? `Anúncio: ${v.anuncio.titulo} (${v.anuncio.status})` : 'Sem anúncio publicado.'}</p>
+          <p className="muted">{v.anuncio ? `Anúncio: ${v.anuncio.titulo} (${anuncioStatus[v.anuncio.status] || v.anuncio.status})` : 'Sem anúncio publicado.'}</p>
           <div className="row">
             {v.anuncio && <Link className="btn ghost small" to={`/anuncios/meus/${v.anuncio.id}`}>Ver anúncio</Link>}
             {!v.desativado_em && <>
-              <Link className="btn ghost small" to={`/anuncios/novo?veiculo=${encodeURIComponent(v.id)}`}>Criar anúncio</Link>
+              {(!v.anuncio || v.anuncio.status === 'ENCERRADO') && <Link className="btn ghost small" to={`/anuncios/novo?veiculo=${encodeURIComponent(v.id)}`}>Criar anúncio</Link>}
               <Link className="btn ghost small" to={`/meus-veiculos/${v.id}/editar`}>Editar veículo</Link>
             </>}
           </div>
         </div>
       </header>
       <VehiclePhotos key={`${user?.id}:${v.id}`} vehicle={v} />
+      <VehicleDocuments key={`docs:${user?.id}:${v.id}`} vehicle={v} />
     </>)}
   </div></div>;
 }

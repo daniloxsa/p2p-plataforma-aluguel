@@ -14,6 +14,9 @@ import MyAnnouncements from "./pages/MyAnnouncements";
 import CreateAnnouncement from "./pages/CreateAnnouncement";
 import OwnerAnnouncement from "./pages/OwnerAnnouncement";
 import Admin from "./pages/Admin";
+import AdminVehicles from './pages/AdminVehicles';
+import AdminVehicleReview from './pages/AdminVehicleReview';
+import AdminRoute, { AdminAccessProvider } from './components/AdminAccess';
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function Toast() {
@@ -35,13 +38,15 @@ function ScrollTop() {
 function DemoNotice() {
   const { pathname } = useLocation();
   if (["/login", "/cadastro"].includes(pathname)) return null;
-  return <div className="container"><div className="alert info">O cadastro, Meus veículos e Meus anúncios usam dados reais da sua conta. Os anúncios da Home, reservas, pagamentos e demais áreas do painel são demonstrações, sem cobranças reais.</div></div>;
+  if (pathname === '/' || pathname.startsWith('/veiculo/')) return null;
+  return <div className="container"><div className="alert info">Cadastro, catálogo, Meus veículos, Meus anúncios e Administração usam dados reais. Reservas e pagamentos do painel são demonstrações, sem cobranças reais.</div></div>;
 }
 
 export default function App() {
   return (
     <AppProvider>
       <HashRouter>
+        <AdminAccessProvider>
         <ScrollTop />
         <Header />
         <main>
@@ -59,7 +64,11 @@ export default function App() {
               <Route path="/anuncios/meus" element={<MyAnnouncements />} />
               <Route path="/anuncios/novo" element={<CreateAnnouncement />} />
               <Route path="/anuncios/meus/:id" element={<OwnerAnnouncement />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/veiculos" element={<AdminVehicles />} />
+                <Route path="/admin/veiculos/:id" element={<AdminVehicleReview />} />
+              </Route>
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
@@ -68,6 +77,7 @@ export default function App() {
         <Footer />
         <BottomNav />
         <Toast />
+        </AdminAccessProvider>
       </HashRouter>
     </AppProvider>
   );

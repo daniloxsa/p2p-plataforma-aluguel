@@ -93,10 +93,11 @@ it('links own active vehicles to draft creation and existing announcements to de
   vi.spyOn(veiculosApi, 'mine').mockResolvedValue({ items: [
     { ...vehicle, anuncio: { id: 'announcement-id', status: 'RASCUNHO', preco_diaria: '150.90' } },
     { ...vehicle, id: 'disabled', desativado_em: '2026-10-31' },
-  ], total: 2, page: 1, limit: 20 });
+    { ...vehicle, id: 'available' },
+  ], total: 3, page: 1, limit: 20 });
   render(<MemoryRouter><MyVehicles /></MemoryRouter>);
   const link = await screen.findByRole('link', { name: 'Criar anúncio' });
-  expect(link.getAttribute('href')).toBe('/anuncios/novo?veiculo=vehicle-id');
+  expect(link.getAttribute('href')).toBe('/anuncios/novo?veiculo=available');
   expect(screen.getAllByRole('link', { name: 'Criar anúncio' })).toHaveLength(1);
-  expect(screen.getByRole('link', { name: 'RASCUNHO · R$ 150,90/dia' }).getAttribute('href')).toBe('/anuncios/meus/announcement-id');
+  expect(screen.getByRole('link', { name: 'Rascunho · R$ 150,90/dia' }).getAttribute('href')).toBe('/anuncios/meus/announcement-id');
 });

@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.ts';
 import { CsrfGuard } from './guards/csrf.guard.ts';
 import { CurrentUser } from './decorators/current-user.decorator.ts';
 import type { PublicUser } from '../usuarios/usuarios.service.ts';
+import { publicUser } from '../usuarios/usuarios.service.ts';
 
 export const validationOptions = { transform: true, whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: true };
 const cookieName = 'univia_refresh';
@@ -50,5 +51,5 @@ export class AuthController {
   }
 
   @Get('me') @UseGuards(JwtAuthGuard)
-  me(@CurrentUser() user: PublicUser) { return user; }
+  me(@CurrentUser() user: PublicUser) { return publicUser(user); }
 }

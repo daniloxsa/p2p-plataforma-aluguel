@@ -1,41 +1,17 @@
-import { useApp } from "../store/AppContext";
-
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { adminApi } from '../api/admin';
+import { AdminError } from '../components/AdminUi';
 export default function Admin() {
-  const { reservas, vehicles, updateReserva, flash } = useApp();
-  return (
-    <div className="container page">
-      <h2 style={{ margin: "4px 0" }}>Admin — moderação (RF17 · UC09)</h2>
-      <div className="muted">Suspender contas/anúncios · arbitrar disputas com laudo auditado (RNF06) · trilha imutável.</div>
-      <div style={{ height: 12 }} />
-      <div className="split">
-        <div className="panel">
-          <h3 style={{ marginTop: 0 }}>Disputas e reservas</h3>
-          <table className="table">
-            <thead><tr><th>ID</th><th>Status</th><th>Ação</th></tr></thead>
-            <tbody>
-              {reservas.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}<br /><span className="muted">{r.inicio}→{r.fim}</span></td>
-                  <td><span className={`status st-${r.status}`}>{r.status}</span></td>
-                  <td>
-                    <div className="row">
-                      {r.status === "EM_DISPUTA" && <button className="btn green small" onClick={() => { updateReserva(r.id, { status: "CONCLUIDA" }); flash("Laudo: sem avaria · valores liberados."); }}>Liberar</button>}
-                      <button className="btn ghost small" onClick={() => { updateReserva(r.id, { status: "CANCELADA" }); flash("Transação suspensa preventivamente (RF17)."); }}>Suspender</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="panel">
-          <h3 style={{ marginTop: 0 }}>Veículos / anúncios</h3>
-          {vehicles.map((v) => (
-            <div key={v.id} className="kv"><span>{v.marca} {v.modelo} — <span className={`status st-${v.status}`}>{v.status}</span></span><span className="muted">{v.docsOk ? "CRLV ok" : "CRLV pendente"}</span></div>
-          ))}
-          <div className="alert info">RNF01: 95% das buscas &lt; 2s · RNF06: auditoria versionada de pagamentos e disputas.</div>
-        </div>
-      </div>
-    </div>
-  );
+  const [state,setState] = useState({ loading: true }), [revision,setRevision] = useState(0);
+  useEffect(() => {
+    let active = true; setState({ loading: true });
+    adminApi.stats().then(data => { if (active) setState({ data }); }).catch(error => { if (active) setState({ error: error.message }); });
+    return () => { active = false; };
+  }, [revision]);
+  return <div className="container page admin-page"><h1>Administração</h1><p className="muted">Análise de veículos e documentação. Indicadores do cadastro real.</p>
+    {state.loading && <p role="status">Carregando indicadores...</p>}<AdminError error={state.error} retry={() => setRevision(n=>n+1)} />
+    {state.data && <><div className="admin-indicators">{[['total','Total de veículos',''],['pendentes','Pendentes','PENDENTE'],['aprovados','Aprovados','APROVADO'],['rejeitados','Rejeitados','REJEITADO']].map(([key,label,status]) => <Link className="panel" key={key} to={`/admin/veiculos${status?`?status=${status}`:''}`}><span className="muted">{label}</span><strong>{state.data[key]}</strong></Link>)}</div>
+      {state.data.total===0 && <div className="alert info">Nenhum veículo cadastrado para analisar.</div>}<Link className="btn primary" to="/admin/veiculos">Consultar veículos</Link></>}
+  </div>;
 }

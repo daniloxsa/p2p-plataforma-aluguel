@@ -5,8 +5,10 @@ import { VeiculosController } from './veiculos.controller.ts';
 import { VeiculosService } from './veiculos.service.ts';
 import { FotosController } from './fotos/fotos.controller.ts';
 import { FotosService } from './fotos/fotos.service.ts';
-import { StorageService } from './fotos/storage.service.ts';
-import { PhotoConfig } from './fotos/photo.config.ts';
 import { UploadBudgetInterceptor } from './fotos/upload-budget.interceptor.ts';
-@Module({ imports: [AuthModule, PrismaModule], controllers: [VeiculosController, FotosController], providers: [VeiculosService, FotosService, StorageService, PhotoConfig, UploadBudgetInterceptor] })
+import { StorageModule } from './fotos/storage.module.ts';
+import { DocumentosController } from './documentos/documentos.controller.ts';
+import { DocumentosService } from './documentos/documentos.service.ts';
+import { DocumentConfig } from './documentos/document.config.ts';
+@Module({ imports: [AuthModule, PrismaModule, StorageModule], controllers: [VeiculosController, FotosController, DocumentosController], providers: [VeiculosService, FotosService, UploadBudgetInterceptor, DocumentosService, DocumentConfig] })
 export class VeiculosModule {}

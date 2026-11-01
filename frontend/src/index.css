@@ -255,6 +255,21 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 }
 
 /* Owner vehicle and photo management */
+.admin-page h1 { font-size: 26px; margin: 0 0 16px; }
+.admin-page > .panel { margin: 20px 0; }
+.admin-indicators { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin: 24px 0; }
+.admin-indicators strong { display: block; margin-top: 12px; font-size: 28px; }
+.admin-filters { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; }
+.admin-filters .field { flex: 1; min-width: 180px; margin-bottom: 0; }
+.admin-table { min-width: 700px; }
+.admin-table small, .admin-reason { overflow-wrap: anywhere; }
+.admin-document { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.admin-reason { white-space: pre-wrap; }
+.admin-photo { border: 0; padding: 0; background: transparent; cursor: zoom-in; width: 100%; }
+.admin-photo img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.admin-preview { position: fixed; inset: 16px; z-index: 80; background: var(--card); border: 1px solid var(--line-dark); padding: 16px; overflow: auto; }
+.admin-preview img { display: block; max-width: 100%; max-height: 80vh; margin: 16px auto; }
+@media (max-width: 640px) { .admin-indicators { grid-template-columns: repeat(2,minmax(0,1fr)); } .admin-page > .panel { padding: 16px; } }
 .owner-vehicle { max-width: 960px; padding-right: 20px; padding-left: 20px; }
 .owner-vehicle-edit { max-width: 720px; }
 .owner-vehicle-back { display: inline-block; margin-bottom: 24px; }
@@ -313,3 +328,37 @@ h1, h2, h3 { letter-spacing: -0.02em; }
   .vehicle-photos-grid { grid-template-columns: minmax(0, 1fr); }
   .vehicle-photo-add { min-height: 180px; }
 }
+/* Private vehicle documents use the existing theme and upload controls. */
+.vehicle-documents { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.vehicle-documents .row { flex-wrap: wrap; }
+.vehicle-document-current { margin: 1rem 0; }
+.vehicle-document-selection { overflow-wrap: anywhere; display: grid; gap: .75rem; justify-items: start; }
+.vehicle-document-preview { max-width: 100%; width: 22rem; max-height: 20rem; object-fit: contain; border-radius: .75rem; }
+.vehicle-documents input[type=file] { max-width: 100%; }
+.anuncio-lifecycle-actions { margin: 1.5rem 0; flex-wrap: wrap; gap: .75rem; }
+.anuncio-lifecycle-dialog .row { flex-wrap: wrap; }
+.anuncio-history { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.anuncio-history li { margin-bottom: .8rem; overflow-wrap: anywhere; }
+/* Public catalog: uses the existing light/dark tokens. */
+.catalog-page { padding-left: 20px; padding-right: 20px; }
+.catalog-heading { padding: 12px 0 24px; }
+.catalog-heading h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.15; }
+.catalog-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; margin-bottom: 28px; }
+.catalog-filter-help { grid-column: 1 / -1; margin: 0; }
+.catalog-photo, .catalog-photo-placeholder { width: 100%; height: 200px; object-fit: cover; background: var(--field); }
+.catalog-photo-placeholder { display: grid; place-items: center; color: var(--muted); text-align: center; }
+.catalog-photo.large, .catalog-photo-placeholder.large { height: auto; aspect-ratio: 4 / 3; object-fit: contain; }
+.catalog-page .card h2 { font-size: 18px; margin: 0; }
+.catalog-page .card .btn { margin-top: auto; }
+.catalog-page .card p { margin: 4px 0; }
+.catalog-pagination { justify-content: center; padding-bottom: 20px; }
+.catalog-thumbnails { display: flex; gap: 8px; overflow-x: auto; margin-top: 12px; padding: 4px; }
+.catalog-thumbnails button { flex: 0 0 90px; padding: 2px; border: 2px solid var(--line); background: var(--card); cursor: pointer; }
+.catalog-thumbnails button[aria-pressed="true"] { border-color: var(--ink); }
+.catalog-thumbnails .catalog-photo, .catalog-thumbnails .catalog-photo-placeholder { height: 65px; font-size: 10px; }
+.catalog-specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.catalog-specs dt { color: var(--muted); font-size: 13px; }
+.catalog-specs dd { margin: 0; font-weight: 600; }
+.catalog-description, .catalog-page h1, .catalog-page h2 { overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 760px) { .catalog-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .catalog-filters { grid-template-columns: 1fr; padding: 16px; } .catalog-page .split { grid-template-columns: minmax(0, 1fr); } .catalog-page .panel { min-width: 0; } }

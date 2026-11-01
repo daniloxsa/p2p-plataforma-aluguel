@@ -11,7 +11,7 @@ datasource db {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model anuncio {
   id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  veiculo_id               String                     @unique(map: "uq_anuncio_ativo_veiculo", where: raw("((status)::text = 'ATIVO'::text)")) @db.Uuid
+  veiculo_id               String                     @unique(map: "uq_anuncio_corrente_veiculo", where: raw("((status)::text IN ('RASCUNHO'::text, 'ATIVO'::text, 'PAUSADO'::text))")) @db.Uuid
   titulo                   String                     @db.VarChar(150)
   descricao                String?
   preco_diaria             Decimal                    @db.Decimal(12, 2)
@@ -23,6 +23,7 @@ model anuncio {
   veiculo                  veiculo                    @relation(fields: [veiculo_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anuncio_veiculo")
   bloqueio_disponibilidade bloqueio_disponibilidade[]
   reserva                  reserva[]
+  historico_anuncio         historico_anuncio[]
 
   @@index([status, preco_diaria], map: "idx_anuncio_status_preco")
   @@index([veiculo_id], map: "idx_anuncio_veiculo")
@@ -156,6 +157,8 @@ model documento_usuario {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model documento_veiculo {
+  validade_ate     DateTime? @db.Date
+  historico_revisao_veiculo historico_revisao_veiculo[]
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   veiculo_id       String    @db.Uuid
   tipo             String    @db.VarChar(30)
@@ -373,6 +376,10 @@ model transacao_financeira {
 }
 
 model usuario {
+  historico_anuncio historico_anuncio[]
+  historico_revisao_veiculo historico_revisao_veiculo[]
+  papel                                     String                     @default("USUARIO") @db.VarChar(20)
+  auditoria_papel_usuario                    auditoria_papel_usuario[]
   sessao_usuario                            sessao_usuario[]
   id                                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome                                      String                     @db.VarChar(150)
@@ -399,6 +406,35 @@ model usuario {
   vistoria                                  vistoria[]
 }
 
+/// Append-only lifecycle audit. Constraints and triggers are in manual B.2 SQL.
+model historico_anuncio {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  anuncio_id String @db.Uuid
+  usuario_id String @db.Uuid
+  status_anterior String @db.VarChar(30)
+  status_novo String @db.VarChar(30)
+  operacao String @db.VarChar(20)
+  criado_em DateTime @default(now()) @db.Timestamptz(6)
+  anuncio anuncio @relation(fields: [anuncio_id], references: [id], onDelete: NoAction)
+  usuario usuario @relation(fields: [usuario_id], references: [id], onDelete: NoAction)
+  @@index([anuncio_id, criado_em(sort: Desc), id(sort: Desc)], map: "idx_historico_anuncio_data")
+}
+
+/// Append-only audit; check constraints, RLS and trigger are defined in the manual SQL migration.
+model auditoria_papel_usuario {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id     String   @db.Uuid
+  papel_anterior String   @db.VarChar(20)
+  papel_novo     String   @db.VarChar(20)
+  criado_em      DateTime @default(now()) @db.Timestamptz(6)
+  operador       String   @db.VarChar(150)
+  operador_banco String   @default(dbgenerated("CURRENT_USER"))
+  ambiente       String   @db.VarChar(10)
+  usuario        usuario  @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_auditoria_papel_usuario")
+
+  @@index([usuario_id, criado_em], map: "idx_auditoria_papel_usuario_data")
+}
+
 model sessao_usuario {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   usuario_id  String    @db.Uuid
@@ -414,6 +450,7 @@ model sessao_usuario {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model veiculo {
+  historico_revisao_veiculo historico_revisao_veiculo[]
   desativado_em      DateTime?           @db.Timestamptz(6)
   id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   proprietario_id    String              @db.Uuid
@@ -435,6 +472,25 @@ model veiculo {
   usuario            usuario             @relation(fields: [proprietario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_veiculo_proprietario")
 
   @@index([proprietario_id], map: "idx_veiculo_proprietario")
+}
+
+/// Append-only review history. See manual B.1 SQL for checks, trigger and RLS.
+model historico_revisao_veiculo {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  veiculo_id String @db.Uuid
+  documento_id String? @db.Uuid
+  administrador_id String @db.Uuid
+  alvo String @db.VarChar(10)
+  status_anterior String @db.VarChar(30)
+  status_novo String @db.VarChar(30)
+  justificativa String? @db.VarChar(1000)
+  validade_ate DateTime? @db.Date
+  criado_em DateTime @default(now()) @db.Timestamptz(6)
+  veiculo veiculo @relation(fields: [veiculo_id], references: [id], onDelete: NoAction)
+  documento documento_veiculo? @relation(fields: [documento_id], references: [id], onDelete: NoAction)
+  administrador usuario @relation(fields: [administrador_id], references: [id], onDelete: NoAction)
+  @@index([veiculo_id, criado_em(sort: Desc), id(sort: Desc)], map: "idx_revisao_veiculo_data")
+  @@index([documento_id], map: "idx_revisao_documento")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

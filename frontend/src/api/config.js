@@ -4,6 +4,6 @@
   headers: { "Content-Type": "application/json" },
 };
 
-// Anúncios públicos e reservas continuam demonstrativos. O CRUD privado usa veiculos.js.
+// Serviços legados do painel são demonstrativos. Catálogo público usa catalogo.js.
 export function isMockMode() { return true; }
 

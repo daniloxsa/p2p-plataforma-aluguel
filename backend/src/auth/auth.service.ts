@@ -8,6 +8,7 @@ import { UsuariosService, canLogin, publicUser, type PublicUser } from '../usuar
 import { AuthConfig } from './auth.config.ts';
 import { RegisterDto } from './dto/register.dto.ts';
 import { LoginDto } from './dto/login.dto.ts';
+import { PAPEL, type AuthenticatedUser } from './papeis.ts';
 
 export const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 const unauthorized = () => new UnauthorizedException('Credenciais ou sessao invalidas.');
@@ -23,10 +24,11 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const { senha, ...data } = dto;
+    // Explicit allowlist: even an internal caller cannot mass-assign a privileged role.
+    const { senha, nome, cpf, email, telefone } = dto;
     const senha_hash = await argon2.hash(senha, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 });
     try {
-      return await this.usuarios.create({ ...data, senha_hash, status: 'PENDENTE_VERIFICACAO' });
+      return await this.usuarios.create({ nome, cpf, email, telefone, senha_hash, status: 'PENDENTE_VERIFICACAO', papel: PAPEL.USUARIO });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('E-mail ou CPF ja cadastrado.');
@@ -77,7 +79,7 @@ export class AuthService {
     if (token) await this.prisma.sessao_usuario.updateMany({ where: { token_hash: tokenHash(token), revogado_em: null }, data: { revogado_em: new Date() } });
   }
 
-  async authenticate(token: string): Promise<PublicUser> {
+  async authenticate(token: string): Promise<AuthenticatedUser> {
     let claims: { sub?: string; type?: string; sid?: string };
     try {
       claims = await this.jwt.verifyAsync(token, { secret: this.config.secret, algorithms: ['HS256'], issuer: 'univia', audience: 'univia-api' });
@@ -87,6 +89,6 @@ export class AuthService {
     const session = await this.prisma.sessao_usuario.findFirst({ where: { id: claims.sid, usuario_id: claims.sub, revogado_em: null, expira_em: { gt: new Date() } } });
     const user = await this.usuarios.byId(claims.sub);
     if (!session || !user || !canLogin(user)) throw unauthorized();
-    return publicUser(user);
+    return { ...publicUser(user), papel: user.papel };
   }
 }

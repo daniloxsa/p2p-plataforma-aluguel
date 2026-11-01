@@ -7,15 +7,16 @@ export type PublicUser = Pick<usuario, 'id' | 'nome' | 'email' | 'telefone' | 's
 export function publicUser(user: PublicUser): PublicUser {
   return { id: user.id, nome: user.nome, email: user.email, telefone: user.telefone, status: user.status, criado_em: user.criado_em };
 }
-export function canLogin(user: PublicUser): boolean {
-  return ['PENDENTE_VERIFICACAO', 'ATIVO', 'VERIFICADO'].includes(user.status);
+export const loginStatuses = ['PENDENTE_VERIFICACAO', 'ATIVO', 'VERIFICADO'];
+export function canLogin(user: Pick<PublicUser, 'status'>): boolean {
+  return loginStatuses.includes(user.status);
 }
 
 @Injectable()
 export class UsuariosService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
   byEmail(email: string) { return this.prisma.usuario.findUnique({ where: { email } }); }
-  byId(id: string) { return this.prisma.usuario.findUnique({ where: { id }, select: publicUserSelect }); }
+  byId(id: string) { return this.prisma.usuario.findUnique({ where: { id }, select: { ...publicUserSelect, papel: true } }); }
   create(data: Prisma.usuarioCreateInput) { return this.prisma.usuario.create({ data, select: publicUserSelect }); }
 
   async updateProfile(id: string, data: Partial<{ nome: string; telefone: string }>) {

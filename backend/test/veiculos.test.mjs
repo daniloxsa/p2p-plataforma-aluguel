@@ -17,6 +17,7 @@ test('vehicle HTTP contracts, validation and ownership (isolated persistence)', 
   const matches = (r, w) => Object.entries(w).every(([k,v]) => k === 'anuncio' ? r.anuncio?.status === v.is.status : r[k] === v);
   const project = (r, s) => r && Object.fromEntries(Object.entries(s).map(([k]) => [k, r[k] ?? null]));
   const db = {
+    async $queryRaw() { return []; },
     veiculo: {
       async create({ data, select }) {
         if (rows.some(r => r.placa === data.placa)) throw new Prisma.PrismaClientKnownRequestError('duplicate', { code: 'P2002', clientVersion: '7' });

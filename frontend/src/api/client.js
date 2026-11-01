@@ -27,7 +27,7 @@ export class ApiClient {
   configureAuth(handlers) { this.auth = handlers; }
 
   async _request(path, options = {}) {
-    const { auth = false, retryAuth = true, expectedStatus, timeout = API_CONFIG.timeout, ...fetchOptions } = options;
+    const { auth = false, retryAuth = true, expectedStatus, errorMessages, timeout = API_CONFIG.timeout, ...fetchOptions } = options;
     const token = auth ? this.auth?.getToken() : null;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -58,6 +58,14 @@ export class ApiClient {
     }
     if (!response.ok) {
       if (response.status === 401 && auth) this.auth?.invalidate();
+      // Opt-in finite codes only: never surface arbitrary server bodies or internals.
+      if (errorMessages && [409,503].includes(response.status)) {
+        let body;
+        try { body = await response.json(); } catch { /* Generic safe fallback below. */ }
+        if (typeof body?.code === 'string' && Object.hasOwn(errorMessages, body.code)) {
+          const error = new ApiError(response.status, errorMessages[body.code]); error.code = body.code; throw error;
+        }
+      }
       throw new ApiError(response.status);
     }
     if (expectedStatus && response.status !== expectedStatus) throw new ApiError(500);

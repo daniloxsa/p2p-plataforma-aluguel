@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.ts';
 import { CreateVeiculoDto } from './dto/create-veiculo.dto.ts';
 import { UpdateVeiculoDto } from './dto/update-veiculo.dto.ts';
 import { QueryVeiculosDto } from './dto/query-veiculos.dto.ts';
+import { publicEligibility } from '../catalogo/public-eligibility.ts';
 
 export const vehicleSelect = {
   id: true, placa: true, marca: true, modelo: true, ano_fabricacao: true, ano_modelo: true,
@@ -41,7 +42,7 @@ export class VeiculosService {
       const rows = await tx.veiculo.findMany({ where, select: vehicleSelect,
         orderBy: [{ criado_em: 'desc' }, { id: 'desc' }], skip: (page - 1) * limit, take: limit });
       // The schema introspects a partial unique index as a singular relation.
-      // Query announcements directly so multiple drafts/historical announcements remain safe.
+      // Query directly so the current announcement and closed history remain safe.
       const items = await Promise.all(rows.map(async row => ({ ...row, anuncio: await tx.anuncio.findFirst({
         where: { veiculo_id: row.id }, select: announcementSelect, orderBy: [{ criado_em: 'desc' }, { id: 'desc' }],
       }) })));
@@ -52,22 +53,31 @@ export class VeiculosService {
   async own(owner: string, id: string) {
     const row = await this.prisma.veiculo.findFirst({ where: { id, proprietario_id: owner }, select: vehicleSelect });
     if (!row) throw new NotFoundException('Veículo não encontrado.');
-    return { ...row, anuncio: await this.prisma.anuncio.findFirst({ where: { veiculo_id: id }, select: announcementSelect, orderBy: [{ criado_em: 'desc' }, { id: 'desc' }] }) };
+    const revisao = row.status_cadastro === 'REJEITADO' ? await this.prisma.historico_revisao_veiculo.findFirst({
+      where: { veiculo_id: id, alvo: 'VEICULO', status_novo: 'REJEITADO' },
+      select: { justificativa: true, criado_em: true }, orderBy: [{ criado_em: 'desc' }, { id: 'desc' }],
+    }) : null;
+    return { ...row, revisao, anuncio: await this.prisma.anuncio.findFirst({ where: { veiculo_id: id }, select: announcementSelect, orderBy: [{ criado_em: 'desc' }, { id: 'desc' }] }) };
   }
   async publicById(id: string) {
-    const row = await this.prisma.veiculo.findFirst({
-      where: { id, desativado_em: null, status_cadastro: 'APROVADO', anuncio: { is: { status: 'ATIVO' } } },
-      select: { id: true, marca: true, modelo: true, ano_modelo: true, categoria: true, cambio: true,
-        combustivel: true, quantidade_lugares: true },
-    });
-    if (!row) throw new NotFoundException('Veículo não encontrado.');
-    return { ...row, anuncio: await this.prisma.anuncio.findFirst({ where: { veiculo_id: id, status: 'ATIVO' }, select: announcementSelect }) };
+    // Keep the legacy vehicle-id contract without a second, weaker public policy.
+    return this.prisma.$transaction(async tx => {
+      const eligible = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT a.id FROM anuncio a JOIN veiculo v ON v.id = a.veiculo_id
+        WHERE v.id = ${id}::uuid AND ${publicEligibility()} LIMIT 1`);
+      if (!eligible.length) throw new NotFoundException('Veículo não encontrado.');
+      const row = await tx.veiculo.findFirst({ where: { id },
+        select: { id: true, marca: true, modelo: true, ano_modelo: true, categoria: true, cambio: true,
+          combustivel: true, quantidade_lugares: true } });
+      if (!row) throw new NotFoundException('Veículo não encontrado.');
+      return { ...row, anuncio: await tx.anuncio.findFirst({ where: { id: eligible[0].id }, select: announcementSelect }) };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
   async update(owner: string, id: string, dto: UpdateVeiculoDto) {
     dto = Object.fromEntries(Object.entries(dto).filter(([, value]) => value !== undefined)) as UpdateVeiculoDto;
     if (!Object.keys(dto).length) throw new BadRequestException('Informe ao menos um campo.');
     try {
       return await this.prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT id FROM public.veiculo WHERE id = ${id}::uuid FOR UPDATE`;
         const row = await tx.veiculo.findFirst({ where: { id, proprietario_id: owner } });
         if (!row) throw new NotFoundException('Veículo não encontrado.');
         if (row.desativado_em) throw new ConflictException('Veículo desativado não pode ser editado.');
@@ -80,12 +90,13 @@ export class VeiculosService {
         }
         this.years({ ...row, ...dto });
         return tx.veiculo.update({ where: { id, proprietario_id: owner }, data: dto, select: vehicleSelect });
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
     } catch (error) { return this.conflict(error); }
   }
   async deactivate(owner: string, id: string) {
     try {
       await this.prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT id FROM public.veiculo WHERE id = ${id}::uuid FOR UPDATE`;
         const row = await tx.veiculo.findFirst({ where: { id, proprietario_id: owner } });
         if (!row) throw new NotFoundException('Veículo não encontrado.');
         if (row.desativado_em) return;
@@ -97,7 +108,7 @@ export class VeiculosService {
           throw new ConflictException('Despublique o anúncio antes de desativar o veículo.');
         }
         await tx.veiculo.update({ where: { id, proprietario_id: owner }, data: { desativado_em: new Date() } });
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
     } catch (error) { this.conflict(error); }
   }
 }

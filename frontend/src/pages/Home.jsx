@@ -1,74 +1,63 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { BRL, categorias } from "../data/mock";
-import { useApp } from "../store/AppContext";
-import { VehicleCard } from "../components/ui";
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CatalogError, CatalogPhoto } from '../components/CatalogoUi';
+import { useCatalogoResource } from '../services/useCatalogoResource';
+import { formatMoney } from '../services/anuncioValidation';
+
+const fields = [
+  ['q', 'Marca, modelo ou título', 100], ['categoria', 'Categoria', 50],
+  ['cambio', 'Câmbio', 30], ['combustivel', 'Combustível', 30],
+  ['preco_min', 'Diária mínima (R$)'], ['preco_max', 'Diária máxima (R$)'],
+];
+function Filters({ params, onSubmit }) {
+  const [form, setForm] = useState(Object.fromEntries(fields.map(([key]) => [key, params.get(key) || ''])));
+  const [ordem, setOrdem] = useState(params.get('ordem') || 'recentes');
+  const [error, setError] = useState('');
+  function submit(event) {
+    event.preventDefault();
+    if (form.preco_min && form.preco_max && Number(form.preco_min) > Number(form.preco_max)) { setError('A diária mínima deve ser menor ou igual à máxima.'); return; }
+    setError('');
+    const next = new URLSearchParams({ ordem, page: '1' });
+    fields.forEach(([key]) => { if (form[key].trim()) next.set(key, form[key].trim()); });
+    onSubmit(next);
+  }
+  return <form className="panel catalog-filters" onSubmit={submit} aria-label="Filtros do catálogo">
+    {fields.map(([key, label, maxLength]) => <div className="field" key={key}><label htmlFor={`catalog-${key}`}>{label}</label>
+      <input id={`catalog-${key}`} type="text" inputMode={maxLength ? 'text' : 'decimal'} maxLength={maxLength || 13}
+        pattern={maxLength ? undefined : '[0-9]{1,10}(\\.[0-9]{1,2})?'} placeholder={maxLength ? undefined : 'Ex.: 150.90'}
+        value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} /></div>)}
+    <div className="field"><label htmlFor="catalog-order">Ordenar por</label><select id="catalog-order" value={ordem} onChange={e => setOrdem(e.target.value)}>
+      <option value="recentes">Mais recentes</option><option value="menor_preco">Menor preço</option><option value="maior_preco">Maior preço</option>
+    </select></div>
+    <div className="row"><button className="btn primary" type="submit">Buscar</button><button className="btn" type="button" onClick={() => onSubmit(new URLSearchParams())}>Limpar filtros</button></div>
+    <p className="muted catalog-filter-help">Categoria, câmbio e combustível usam o valor cadastrado, sem diferenciar maiúsculas e minúsculas. Preços com ponto decimal.</p>
+    {error && <p role="alert">{error}</p>}
+  </form>;
+}
 
 export default function Home() {
-  const { vehicles, reservas } = useApp();
-  const nav = useNavigate();
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("Todas");
-  const [max, setMax] = useState(500);
-  const [inicio, setInicio] = useState("2026-10-10");
-  const [fim, setFim] = useState("2026-10-13");
-
-  const list = useMemo(() => {
-    return vehicles.filter((v) => {
-      if (cat !== "Todas" && v.categoria !== cat) return false;
-      if (v.precoDiaria > max) return false;
-      if (q && !(v.marca + " " + v.modelo + " " + v.cidade).toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    });
-  }, [vehicles, q, cat, max]);
-
-  return (
-    <div className="container page">
-      <section className="hero">
-        <div>
-          <h1>Aluguel de carros entre pessoas.</h1>
-          <p>Sem frota própria. Com verificação de identidade, documentos validados, seguro por dia, caução separada e reputação mútua.</p>
-          <div className="row">
-            <button className="btn green" style={{ background: "#fff", color: "#000" }} onClick={() => document.getElementById("lista")?.scrollIntoView({ behavior: "smooth" })}>Explorar frota</button>
-            <button className="btn ghost" style={{ background: "transparent", color: "#fff", borderColor: "#555" }} onClick={() => nav("/anunciar")}>Anunciar meu carro</button>
-          </div>
-          <div className="hero-stats">
-            <div className="stat"><strong>R$ 61,7 Bi</strong><small>Faturamento locação 2025</small></div>
-            <div className="stat"><strong>1,71 Mi</strong><small>Frota no Brasil</small></div>
-            <div className="stat"><strong>79,7 Mi</strong><small>Usuários acumulados</small></div>
-          </div>
-        </div>
-        <div className="search-card">
-          <h3>Buscar veículo</h3>
-          <div className="sub">RF04 · com checagem de disponibilidade RF21</div>
-          <div className="grid2">
-            <div className="field"><label>Retirada</label><input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} /></div>
-            <div className="field"><label>Devolução</label><input type="date" value={fim} onChange={(e) => setFim(e.target.value)} /></div>
-          </div>
-          <div className="field"><label>Onde / qual carro?</label><input placeholder="Ex: SUV em São Paulo, Corolla..." value={q} onChange={(e) => setQ(e.target.value)} /></div>
-          <div className="field"><label>Preço máx/dia: {BRL(max)}</label><input type="range" min={80} max={500} step={10} value={max} onChange={(e) => setMax(+e.target.value)} /></div>
-          <button className="btn primary" style={{ width: "100%" }} onClick={() => document.getElementById("lista")?.scrollIntoView({ behavior: "smooth" })}>Buscar · {list.length} veículos</button>
-          <div className="muted" style={{ marginTop: 8, fontSize: 12 }}>Reservas com sobreposição de datas são bloqueadas (RN03).</div>
-        </div>
-      </section>
-
-      <div className="toolbar" id="lista">
-        {categorias.map((c) => (
-          <button key={c} className={`chip ${cat === c ? "active" : ""}`} onClick={() => setCat(c)}>{c}</button>
-        ))}
-        <span className="spacer" />
-        <span className="muted">{list.length} resultados · {reservas.length} reservas demo</span>
-      </div>
-
-      <div className="map-ph">Mapa com localização aproximada por privacidade (RF20) — raio de 1,5 km</div>
-      <div style={{ height: 16 }} />
-
-      <div className="cards">
-        {list.map((v) => (
-          <VehicleCard key={v.id} v={v} onOpen={(vv) => nav(`/veiculo/${vv.id}?inicio=${inicio}&fim=${fim}`)} />
-        ))}
-      </div>
-      {list.length === 0 && <div className="alert warn">Nenhum veículo com esse filtro. Ajuste preço ou categoria.</div>}
-    </div>
-  );
+  const [params, setParams] = useSearchParams();
+  const query = params.toString();
+  const { data, error, loading, retry } = useCatalogoResource(query);
+  const changePage = page => { const next = new URLSearchParams(params); next.set('page', String(page)); setParams(next); };
+  return <div className="container page catalog-page">
+    <header className="catalog-heading"><p className="muted">UniVia · Catálogo público</p><h1>Encontre seu próximo caminho</h1><p>Conheça os veículos e consulte os detalhes dos anúncios publicados.</p><p className="muted">Reservas e contratações ainda não estão disponíveis.</p></header>
+    <Filters key={query} params={params} onSubmit={setParams} />
+    <section aria-label="Resultados do catálogo" aria-busy={loading}>
+      {loading && <p role="status">Carregando anúncios...</p>}
+      {error && <CatalogError error={error} retry={retry} />}
+      {data && <><p role="status">{data.total} {data.total === 1 ? 'anúncio encontrado' : 'anúncios encontrados'}</p>
+        {data.items.length === 0 && <div className="alert info">Nenhum anúncio nesta página. Ajuste os filtros ou volte à primeira página.{data.page > 1 && <button className="btn" onClick={() => changePage(1)}>Primeira página</button>}</div>}
+        <div className="cards">{data.items.map(ad => <article className="card" key={ad.id}>
+          <CatalogPhoto photo={ad.fotos[0]} alt={`${ad.veiculo.marca} ${ad.veiculo.modelo}`} />
+          <div className="card-body"><h2>{ad.titulo}</h2><p className="muted">{ad.veiculo.marca} {ad.veiculo.modelo} · {ad.veiculo.ano_modelo}</p>
+            <div className="row"><span className="tag">{ad.veiculo.categoria}</span><span className="tag">{ad.veiculo.cambio}</span></div>
+            <p><strong>{formatMoney(ad.preco_diaria)}</strong> / dia</p>
+            <Link className="btn primary" to={`/veiculo/${ad.id}`} state={{ catalogo: `/?${query}` }}>Ver detalhes de {ad.titulo}</Link>
+          </div></article>)}</div>
+        <nav className="row catalog-pagination" aria-label="Paginação"><button className="btn" disabled={data.page <= 1} onClick={() => changePage(data.page - 1)}>Anterior</button>
+          <span>Página {data.page} de {Math.max(1, data.pages)}</span><button className="btn" disabled={data.page >= data.pages} onClick={() => changePage(data.page + 1)}>Próxima</button></nav>
+      </>}
+    </section>
+  </div>;
 }

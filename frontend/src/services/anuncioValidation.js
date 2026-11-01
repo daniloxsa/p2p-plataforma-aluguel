@@ -3,6 +3,7 @@ export const moneyFields = [
   ['valor_caucao', 'Valor da caução (R$)'],
   ['preco_seguro_dia', 'Seguro por dia (R$)'],
 ];
+export const anuncioStatus = { RASCUNHO: 'Rascunho', ATIVO: 'Publicado', PAUSADO: 'Pausado', ENCERRADO: 'Encerrado' };
 
 export function decimal(value, positive = false) {
   // Strings throughout: never multiply/round money using floating point.

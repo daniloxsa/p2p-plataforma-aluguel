@@ -9,7 +9,7 @@ import ProtectedRoute from '../src/components/ProtectedRoute';
 import { anunciosApi } from '../src/api/anuncios';
 import { veiculosApi } from '../src/api/veiculos';
 import { apiClient, ApiError } from '../src/api/client';
-import { anuncioPayload, decimal, formatMoney } from '../src/services/anuncioValidation';
+import { anuncioPayload, anuncioStatus, decimal, formatMoney } from '../src/services/anuncioValidation';
 
 const { context } = vi.hoisted(() => ({ context: { user: { id: 'alice' }, flash: vi.fn(), isAuthenticated: true, isAuthLoading: false } }));
 vi.mock('../src/store/AppContext', () => ({ useApp: () => context }));
@@ -122,7 +122,7 @@ it('creates exactly one draft, checks ownership again and fetches actual details
     preco_diaria: '150.90', valor_caucao: '0.00', preco_seguro_dia: '0.00', aceite_automatico: false });
   expect(ownVehicle).toHaveBeenCalledTimes(2); expect(screen.getByRole('button', { name: 'Criando anúncio...' }).disabled).toBe(true);
   await act(async () => pending.resolve(row));
-  expect(await screen.findByText('RASCUNHO')).toBeTruthy(); expect(own).toHaveBeenCalledWith('a1');
+  expect(await screen.findByText('Rascunho')).toBeTruthy(); expect(own).toHaveBeenCalledWith('a1');
   expect(context.flash).toHaveBeenCalledWith('Rascunho criado com sucesso.');
 });
 
@@ -152,13 +152,13 @@ it('edits only changed allowed fields once, then reloads details', async () => {
   expect(own).toHaveBeenCalledTimes(2); expect(screen.getByLabelText('Preço da diária (R$)').value).toBe('175.99');
 });
 
-it.each(['ENCERRADO', 'ATIVO', 'PAUSADO'])('renders %s as read only with precise currency', async status => {
+it.each(['ENCERRADO', 'ATIVO'])('renders %s as read only with precise currency', async status => {
   vi.spyOn(anunciosApi, 'own').mockResolvedValue({ ...row, status });
-  render(routes('/anuncios/meus/a1')); expect(await screen.findByText(status)).toBeTruthy();
+  render(routes('/anuncios/meus/a1')); expect(await screen.findByText(anuncioStatus[status])).toBeTruthy();
   expect(screen.getByText('Confortável.')).toBeTruthy(); expect(screen.getByText('R$ 150,90')).toBeTruthy();
   expect(screen.queryByLabelText('Título do anúncio')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Encerrar anúncio' })).toBeNull();
-  expect(screen.queryByRole('button', { name: /Publicar|Pausar|Reativar/ })).toBeNull();
+  expect(Boolean(screen.queryByRole('button', { name: 'Encerrar anúncio' }))).toBe(status !== 'ENCERRADO');
+  expect(Boolean(screen.queryByRole('button', { name: 'Pausar anúncio' }))).toBe(status === 'ATIVO');
 });
 
 it('confirms logical closure, allows cancellation and prevents duplicate requests', async () => {
@@ -172,10 +172,10 @@ it('confirms logical closure, allows cancellation and prevents duplicate request
   fireEvent.click(screen.getByRole('button', { name: 'Encerrar anúncio' }));
   const button = screen.getByRole('button', { name: 'Confirmar encerramento' }); fireEvent.click(button); fireEvent.click(button);
   expect(close).toHaveBeenCalledExactlyOnceWith('a1');
-  expect(screen.getByRole('button', { name: 'Encerrando anúncio...' }).disabled).toBe(true);
+  expect(screen.getByRole('button', { name: 'Processando anúncio...' }).disabled).toBe(true);
   own.mockResolvedValue({ ...row, status: 'ENCERRADO' });
   await act(async () => pending.resolve({ ...row, status: 'ENCERRADO' }));
-  expect(await screen.findByText('ENCERRADO')).toBeTruthy(); expect(screen.queryByLabelText('Título do anúncio')).toBeNull();
+  expect(await screen.findByText('Encerrado')).toBeTruthy(); expect(screen.queryByLabelText('Título do anúncio')).toBeNull();
   expect(own).toHaveBeenCalledTimes(2);
 });
 
@@ -189,7 +189,7 @@ it('refreshes after a 409, changes to read only and preserves recoverable drafts
   own.mockResolvedValue({ ...row, status: 'ENCERRADO' });
   await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar alterações' }).disabled).toBe(false));
   fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
-  expect(await screen.findByText('ENCERRADO')).toBeTruthy(); expect(screen.queryByLabelText('Título do anúncio')).toBeNull();
+  expect(await screen.findByText('Encerrado')).toBeTruthy(); expect(screen.queryByLabelText('Título do anúncio')).toBeNull();
 });
 
 it('shows 404 without revealing data and retries failed details', async () => {

@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "admin:test": "node --import tsx scripts/admin-test.mjs",
+    "admin:papel": "node --import tsx scripts/admin-role.mjs",
+    "admin:db:inspect": "node scripts/inspect-admin-db.mjs",
     "auth:env": "node scripts/configure-auth-env.mjs",
     "auth:db:inspect": "node scripts/inspect-auth-db.mjs",
     "auth:db:apply": "prisma db execute --file prisma/sql/20261030_sessao_usuario.sql",
@@ -31,6 +34,7 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
+    "pdf-lib": "^1.17.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0",
     "sharp": "^0.35.5"

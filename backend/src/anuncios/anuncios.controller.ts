@@ -5,6 +5,7 @@ import { AnunciosService } from './anuncios.service.ts';
 import { CreateAnuncioDto } from './dto/create-anuncio.dto.ts';
 import { UpdateAnuncioDto } from './dto/update-anuncio.dto.ts';
 import { QueryAnunciosDto } from './dto/query-anuncios.dto.ts';
+import { AnnouncementHistoryQueryDto } from './dto/history-query.dto.ts';
 
 const validated = (expectedType: new () => object) => new ValidationPipe({ expectedType, transform: true, whitelist: true, forbidNonWhitelisted: true });
 class EncerrarAnuncioDto {}
@@ -31,11 +32,23 @@ export class AnunciosController {
     @Body(validated(UpdateAnuncioDto)) dto: UpdateAnuncioDto) {
     return this.anuncios.update(user.id, id, dto);
   }
-  @Patch(':id/encerrar')
+  @Patch(':id/encerrar') @Header('Cache-Control', 'no-store')
   close(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string,
     // Object metadata skips the global unknown-value check for a DTO with no fields.
     // The explicit local pipe still rejects every supplied property.
     @Body(validated(EncerrarAnuncioDto)) _dto: object) {
     return this.anuncios.close(user.id, id);
   }
+  @Patch(':id/publicar') @Header('Cache-Control', 'no-store')
+  publish(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(validated(EncerrarAnuncioDto)) _dto: object) { return this.anuncios.transition(user.id, id, 'publicar'); }
+  @Patch(':id/pausar') @Header('Cache-Control', 'no-store')
+  pause(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(validated(EncerrarAnuncioDto)) _dto: object) { return this.anuncios.transition(user.id, id, 'pausar'); }
+  @Patch(':id/reativar') @Header('Cache-Control', 'no-store')
+  reactivate(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(validated(EncerrarAnuncioDto)) _dto: object) { return this.anuncios.transition(user.id, id, 'reativar'); }
+  @Get('meus/:id/historico') @Header('Cache-Control', 'no-store')
+  history(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string,
+    @Query(validated(AnnouncementHistoryQueryDto)) dto: AnnouncementHistoryQueryDto) { return this.anuncios.history(user.id, id, dto); }
 }

@@ -5,9 +5,11 @@ import { AuthModule } from './auth/auth.module.ts';
 import { UsuariosModule } from './usuarios/usuarios.module.ts';
 import { VeiculosModule } from './veiculos/veiculos.module.ts';
 import { AnunciosModule } from './anuncios/anuncios.module.ts';
+import { AdminModule } from './admin/admin.module.ts';
+import { CatalogoModule } from './catalogo/catalogo.module.ts';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UsuariosModule, VeiculosModule, AnunciosModule],
+  imports: [PrismaModule, AuthModule, UsuariosModule, VeiculosModule, AnunciosModule, AdminModule, CatalogoModule],
   controllers: [HealthController],
   providers: [],
 })

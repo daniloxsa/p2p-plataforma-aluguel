@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { veiculosApi } from '../api/veiculos';
 import { useApp } from '../store/AppContext';
-import { formatMoney } from '../services/anuncioValidation';
+import { anuncioStatus, formatMoney } from '../services/anuncioValidation';
 export default function MyVehicles() {
   const { user, flash } = useApp();
   const [page, setPage] = useState(1);
@@ -47,10 +47,10 @@ export default function MyVehicles() {
         <tbody>{state.data.items.map(v => <tr key={v.id}>
           <td>{v.foto_principal ? <img src={v.foto_principal.url} alt={`Foto principal de ${v.marca} ${v.modelo}`} referrerPolicy="no-referrer" style={{ width: 80, height: 55, objectFit: 'cover', borderRadius: 8 }} /> : <span className="muted">Sem foto</span>}<br />{v.marca} {v.modelo}<br /><small>{v.ano_modelo} · {v.categoria}</small></td><td>{v.placa}</td>
           <td>{v.desativado_em ? 'DESATIVADO' : v.status_cadastro}</td>
-          <td>{v.anuncio ? <Link to={`/anuncios/meus/${v.anuncio.id}`}>{v.anuncio.status} · {formatMoney(v.anuncio.preco_diaria)}/dia</Link> : 'Sem anúncio'}</td>
+          <td>{v.anuncio ? <Link to={`/anuncios/meus/${v.anuncio.id}`}>{anuncioStatus[v.anuncio.status] || v.anuncio.status} · {formatMoney(v.anuncio.preco_diaria)}/dia</Link> : 'Sem anúncio'}</td>
           <td><Link className="btn small" to={`/meus-veiculos/${v.id}`}>Visualizar</Link>{!v.desativado_em && <>
             <Link className="btn ghost small" to={`/meus-veiculos/${v.id}/editar`}>Editar</Link>
-            <Link className="btn ghost small" to={`/anuncios/novo?veiculo=${encodeURIComponent(v.id)}`}>Criar anúncio</Link>
+            {(!v.anuncio || v.anuncio.status === 'ENCERRADO') && <Link className="btn ghost small" to={`/anuncios/novo?veiculo=${encodeURIComponent(v.id)}`}>Criar anúncio</Link>}
             <button className="btn danger small" disabled={busy} onClick={() => { setConfirm(v); setError(''); }}>Desativar</button>
           </>}</td>
         </tr>)}</tbody>

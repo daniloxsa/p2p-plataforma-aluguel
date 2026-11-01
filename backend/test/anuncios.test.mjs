@@ -13,20 +13,25 @@ const { AnunciosService } = await load('anuncios/anuncios.service');
 const { PrismaService } = await load('prisma/prisma.service');
 const { AuthService } = await load('auth/auth.service');
 const { JwtAuthGuard } = await load('auth/guards/jwt-auth.guard');
+const { PublicationPolicyService } = await load('anuncios/publication-policy.service');
 
 test('anúncios: HTTP, ownership and conditional persistence (mock database)', async t => {
   const vehicles = [
     { id: randomUUID(), proprietario_id: 'alice', desativado_em: null, status_cadastro: 'PENDENTE' },
     { id: randomUUID(), proprietario_id: 'bob', desativado_em: null },
     { id: randomUUID(), proprietario_id: 'alice', desativado_em: new Date() },
+    { id: randomUUID(), proprietario_id: 'alice', desativado_em: null },
   ];
   const rows = [], photos = [{ id: randomUUID(), veiculo_id: vehicles[0].id }];
   const matches = (row, where) => Object.entries(where).every(([k, v]) => k === 'veiculo'
-    ? vehicles.find(vehicle => vehicle.id === row.veiculo_id)?.proprietario_id === v.proprietario_id : row[k] === v);
+    ? vehicles.find(vehicle => vehicle.id === row.veiculo_id)?.proprietario_id === v.proprietario_id : typeof v === 'object' && v !== null ? v.in ? v.in.includes(row[k]) : v.not !== undefined ? row[k] !== v.not : false : row[k] === v);
   const project = (row, select) => row && Object.fromEntries(Object.entries(select).map(([key, value]) => [key,
     key === 'veiculo' ? project(vehicles.find(v => v.id === row.veiculo_id), value.select) : row[key] ?? null]));
   let beforeUpdate, lastQuery;
   const db = {
+    async $queryRaw() { return []; },
+    reserva: { async count() { return 0; } },
+    historico_anuncio: { async create() {} },
     veiculo: { async findFirst({ where, select }) { return project(vehicles.find(row => matches(row, where)), select); } },
     anuncio: {
       async create({ data, select }) {
@@ -53,9 +58,9 @@ test('anúncios: HTTP, ownership and conditional persistence (mock database)', a
     },
     async $transaction(operation) { return operation(db); },
   };
-  const service = new AnunciosService(db);
+  const service = new AnunciosService(db, {});
   class TestModule {}
-  Module({ controllers: [AnunciosController], providers: [AnunciosService, JwtAuthGuard,
+  Module({ controllers: [AnunciosController], providers: [AnunciosService, JwtAuthGuard, { provide: PublicationPolicyService, useValue: {} },
     { provide: PrismaService, useValue: db }, { provide: AuthService, useValue: { authenticate: async token => {
       if (!['alice', 'bob'].includes(token)) throw new UnauthorizedException(); return { id: token };
     } } }] })(TestModule);
@@ -99,7 +104,7 @@ test('anúncios: HTTP, ownership and conditional persistence (mock database)', a
     }
     assert.equal((await request('', 'POST', { ...dto, veiculo_id: vehicles[2].id })).status, 409);
   });
-  await t.test('creates pending vehicle drafts, allows multiple drafts and preserves decimals', async () => {
+  await t.test('creates pending vehicle drafts, rejects duplicate current announcements and preserves decimals', async () => {
     const created = await request('', 'POST', { ...dto, descricao: '  ', valor_caucao: '9999999999.99', preco_seguro_dia: 0.1 });
     assert.equal(created.status, 201);
     const row = await created.json(); id = row.id;
@@ -108,7 +113,8 @@ test('anúncios: HTTP, ownership and conditional persistence (mock database)', a
     assert.equal(row.preco_seguro_dia, '0.10'); assert.equal(row.aceite_automatico, false);
     assert.equal(row.veiculo.proprietario_id, undefined); assert.equal(row.veiculo.placa, undefined);
     assert.ok(rows[0].preco_diaria instanceof Prisma.Decimal);
-    assert.equal((await request('', 'POST', { ...dto, titulo: 'Segundo', preco_diaria: '20.01' })).status, 201);
+    assert.equal((await request('', 'POST', { ...dto, titulo: 'Duplicado' })).status, 409);
+    assert.equal((await request('', 'POST', { ...dto, veiculo_id: vehicles[3].id, titulo: 'Segundo', preco_diaria: '20.01' })).status, 201);
     assert.equal((await request('', 'POST', { ...dto, veiculo_id: vehicles[1].id }, 'bob')).status, 201);
   });
   await t.test('private reads, bounded pagination and deterministic ordering', async () => {
@@ -141,7 +147,7 @@ test('anúncios: HTTP, ownership and conditional persistence (mock database)', a
     assert.equal(row.descricao, 'texto'); assert.equal(row.titulo, 'Novo'); assert.equal(row.aceite_automatico, true);
     assert.equal((await request(`/${id}`, 'PATCH', { descricao: null })).status, 200);
   });
-  await t.test('logical close is idempotent, preserves vehicle/photos and blocks late edits', async () => {
+  await t.test('logical close returns conflict on repetition, preserves vehicle/photos and blocks late edits', async () => {
     const vehicleSnapshot = structuredClone(vehicles), photoSnapshot = structuredClone(photos), count = rows.length;
     assert.equal((await request(`/${id}/encerrar`, 'PATCH', undefined, 'bob')).status, 404);
     assert.equal((await request(`/${randomUUID()}/encerrar`, 'PATCH')).status, 404);
@@ -152,18 +158,17 @@ test('anúncios: HTTP, ownership and conditional persistence (mock database)', a
     await assert.rejects(service.update('alice', id, { titulo: 'Too late' }), { status: 409 });
     assert.equal(rows[0].titulo, beforeTitle); assert.equal(rows[0].status, 'ENCERRADO');
     for (let i = 0; i < 2; i++) {
-      const response = await request(`/${id}/encerrar`, 'PATCH'); assert.equal(response.status, 200);
-      assert.equal((await response.json()).status, 'ENCERRADO');
+      const response = await request(`/${id}/encerrar`, 'PATCH'); assert.equal(response.status, 409);
     }
     assert.equal((await request(`/${id}`, 'PATCH', { titulo: 'Outra' })).status, 409);
     assert.equal(rows.length, count); assert.deepEqual(vehicles, vehicleSnapshot); assert.deepEqual(photos, photoSnapshot);
   });
-  await t.test('active and paused announcements cannot be edited or closed', async () => {
+  await t.test('active announcements are read-only, paused ones editable; both may be closed', async () => {
     for (const status of ['ATIVO', 'PAUSADO']) {
       rows[1].status = status;
-      assert.equal((await request(`/${rows[1].id}`, 'PATCH', { titulo: 'Outra' })).status, 409);
-      assert.equal((await request(`/${rows[1].id}/encerrar`, 'PATCH')).status, 409);
-      assert.equal(rows[1].status, status);
+      assert.equal((await request(`/${rows[1].id}`, 'PATCH', { titulo: 'Outra' })).status, status === 'ATIVO' ? 409 : 200);
+      assert.equal((await request(`/${rows[1].id}/encerrar`, 'PATCH')).status, 200);
+      assert.equal(rows[1].status, 'ENCERRADO');
     }
   });
 });

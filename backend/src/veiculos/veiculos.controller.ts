@@ -27,7 +27,7 @@ export class VeiculosController {
   }
   @Get('meus/:id') @UseGuards(JwtAuthGuard)
   own(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string) { return this.vehicles.own(user.id, id); }
-  @Get(':id')
+  @Get(':id') @Header('Cache-Control', 'no-store')
   publicById(@Param('id', new ParseUUIDPipe()) id: string) { return this.vehicles.publicById(id); }
   @Patch(':id') @UseGuards(JwtAuthGuard)
   update(@CurrentUser() user: { id: string }, @Param('id', new ParseUUIDPipe()) id: string, @Body(validated(UpdateVeiculoDto)) dto: UpdateVeiculoDto) { return this.vehicles.update(user.id, id, dto); }

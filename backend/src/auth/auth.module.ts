@@ -9,9 +9,10 @@ import { AuthConfig } from './auth.config.ts';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.ts';
 import { CsrfGuard } from './guards/csrf.guard.ts';
 import { AuthThrottlerGuard } from './guards/auth-throttler.guard.ts';
+import { AdminGuard } from './guards/admin.guard.ts';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => UsuariosModule), JwtModule.register({}), ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }])],
-  controllers: [AuthController], providers: [AuthConfig, AuthService, JwtAuthGuard, CsrfGuard, AuthThrottlerGuard], exports: [JwtAuthGuard, AuthService],
+  controllers: [AuthController], providers: [AuthConfig, AuthService, JwtAuthGuard, AdminGuard, CsrfGuard, AuthThrottlerGuard], exports: [JwtAuthGuard, AdminGuard, AuthService, AuthThrottlerGuard, ThrottlerModule],
 })
 export class AuthModule {}

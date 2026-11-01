@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { anuncioPayload, moneyFields, vehicleName } from '../services/anuncioValidation';
 
-export default function AnuncioForm({ initial = {}, creating = false, vehicles = [], onSave, disabled = false, children }) {
+export default function AnuncioForm({ initial = {}, creating = false, vehicles = [], onSave, onDirtyChange, disabled = false, children }) {
   const [form, setForm] = useState(() => ({
     veiculo_id: initial.veiculo_id || '', titulo: initial.titulo || '', descricao: initial.descricao || '',
     preco_diaria: initial.preco_diaria ?? '', valor_caucao: initial.valor_caucao ?? '0.00',
@@ -11,7 +11,13 @@ export default function AnuncioForm({ initial = {}, creating = false, vehicles =
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const available = vehicles.some(v => v.id === form.veiculo_id && !v.desativado_em);
-  const change = (key, value) => setForm(current => ({ ...current, [key]: value }));
+  const change = (key, value) => {
+    const next = { ...form, [key]: value }; setForm(next);
+    if (onDirtyChange) {
+      try { onDirtyChange(JSON.stringify(anuncioPayload(next)) !== JSON.stringify(anuncioPayload({ ...initial, descricao: initial.descricao || '' }))); }
+      catch { onDirtyChange(true); }
+    }
+  };
 
   async function submit(event) {
     event.preventDefault();
@@ -58,7 +64,7 @@ export default function AnuncioForm({ initial = {}, creating = false, vehicles =
       </div>)}</div>
       <p id="anuncio-money-hint" className="muted">Use vírgula ou ponto e até duas casas decimais, sem separador de milhar.</p>
       <label className="anuncio-checkbox"><input type="checkbox" checked={form.aceite_automatico} onChange={e => change('aceite_automatico', e.target.checked)} /> Aceitação automática de reservas</label>
-      <p className="muted">Esta preferência será salva no rascunho. Reservas dependem da publicação futura.</p>
+      <p className="muted">Esta preferência será salva no anúncio. A contratação de reservas será disponibilizada em uma fase posterior.</p>
       {error && <div className="alert err" role="alert">{error}</div>}
       <button className="btn primary" type="submit" disabled={busy || disabled}>
         {busy ? creating ? 'Criando anúncio...' : 'Salvando alterações...' : creating ? 'Criar rascunho' : 'Salvar alterações'}

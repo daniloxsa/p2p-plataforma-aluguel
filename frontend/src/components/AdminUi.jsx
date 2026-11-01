@@ -1,0 +1,5 @@
+import { Link } from 'react-router-dom';
+export function AdminHeading({ title, children }) { return <><Link className="muted owner-vehicle-back" to="/admin">← Administração</Link><h1>{title}</h1>{children}</>; }
+export function AdminError({ error, retry }) { return error ? <div className="alert err" role="alert">{error} {retry && <button className="btn ghost small" onClick={retry}>Tentar novamente</button>}</div> : null; }
+export function AdminPagination({ data,onPage,label }) { return <nav className="row anuncio-pagination" aria-label={label}><button className="btn ghost small" disabled={data.page<=1} onClick={() => onPage(data.page-1)}>Anterior</button><span className="muted">Página {data.page} · {data.total} registros</span><button className="btn ghost small" disabled={data.page*data.limit>=data.total || data.page>=100000} onClick={() => onPage(data.page+1)}>Próxima</button></nav>; }
+export const ReviewStatus = ({ value }) => <span className={`status anuncio-status st-${value}`}>{value}</span>;

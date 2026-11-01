@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { anunciosApi } from '../api/anuncios';
 import { useApp } from '../store/AppContext';
-import { formatMoney, vehicleName } from '../services/anuncioValidation';
+import { anuncioStatus, formatMoney, vehicleName } from '../services/anuncioValidation';
 
 export default function MyAnnouncements() {
   const { user } = useApp();
@@ -23,7 +23,7 @@ export default function MyAnnouncements() {
     <Link className="owner-vehicle-back muted" to="/painel?aba=veiculos">← Painel</Link>
     <div className="panel">
       <div className="row"><h1>Meus anúncios</h1><span className="spacer" /><Link className="btn primary" to="/anuncios/novo">Criar anúncio</Link></div>
-      <p className="muted">Gerencie os rascunhos e consulte o histórico dos seus anúncios.</p>
+      <p className="muted">Gerencie a publicação, pause, reative ou encerre seus anúncios e consulte o histórico.</p>
       <div className="field anuncio-sort"><label htmlFor="anuncios-sort">Ordenar por</label>
         <select id="anuncios-sort" value={sorting} onChange={e => { setSorting(e.target.value); setPage(1); }}>
           <option value="criado_em:desc">Mais recentes</option><option value="criado_em:asc">Mais antigos</option>
@@ -40,9 +40,9 @@ export default function MyAnnouncements() {
           <tbody>{state.data.items.map(row => <tr key={row.id}>
             <td><strong>{row.titulo}</strong><br /><span className="muted">{vehicleName(row.veiculo)}{row.veiculo?.ano_modelo ? ` · ${row.veiculo.ano_modelo}` : ''}</span></td>
             <td className="anuncio-nowrap">{formatMoney(row.preco_diaria)}</td>
-            <td><span className={`status anuncio-status st-${row.status}`}>{row.status}</span></td>
+            <td><span className={`status anuncio-status st-${row.status}`}>{anuncioStatus[row.status] || row.status}</span></td>
             <td>{new Date(row.criado_em).toLocaleDateString('pt-BR')}</td>
-            <td><Link className="btn ghost small" to={`/anuncios/meus/${row.id}`}>{row.status === 'RASCUNHO' ? 'Visualizar / editar' : 'Visualizar'}</Link></td>
+            <td><Link className="btn ghost small" to={`/anuncios/meus/${row.id}`}>{['RASCUNHO','PAUSADO'].includes(row.status) ? 'Visualizar / editar' : 'Visualizar'}</Link></td>
           </tr>)}</tbody>
         </table></div>}
         <nav className="row anuncio-pagination" aria-label="Paginação de anúncios">

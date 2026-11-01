@@ -1,8 +1,10 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useApp } from "../store/AppContext";
+import { useAdminAccess } from './AdminAccess';
 
 export function Header() {
+  const admin = useAdminAccess();
   const { user, logout, theme, toggleTheme, isAuthLoading, flash } = useApp();
   const [open, setOpen] = useState(false);
   const nav = useNavigate();
@@ -26,7 +28,7 @@ export function Header() {
             <NavLink to="/anunciar" className={({ isActive }) => isActive ? "active" : ""}>Anunciar</NavLink>
             <NavLink to="/painel" className={({ isActive }) => isActive ? "active" : ""}>Painel</NavLink>
             {user && <NavLink to="/perfil" className={({ isActive }) => isActive ? "active" : ""}>Perfil</NavLink>}
-            {user && <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}>Admin</NavLink>}
+            {admin?.allowed && <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}>Administração</NavLink>}
           </nav>
           <button
             type="button"
@@ -59,7 +61,7 @@ export function Header() {
           <a href="#/painel" onClick={() => setOpen(false)}>Painel / Reservas</a>
           <a href="#/perfil" onClick={() => setOpen(false)}>Meu perfil</a>
           <a href="#/cadastro" onClick={() => setOpen(false)}>Criar conta</a>
-          {user && <a href="#/admin" onClick={() => setOpen(false)}>Admin</a>}
+          {admin?.allowed && <a href="#/admin" onClick={() => setOpen(false)}>Administração</a>}
         </div>
       )}
     </>
@@ -70,15 +72,15 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="container">
-        <strong style={{ color: "var(--ink)" }}>DriveShare P2P — autenticação real · demais módulos em demonstração</strong>
-        <p>React + Vite · responsivo · dados de demonstração. RN01 verificação KYC · RN03 sem sobreposição · RN05 caução isolada · RN09 repasse pós-devolução · RN10 disputa congela valores.</p>
-        <p>Fluxo: SOLICITADA → APROVADA → EM_ANDAMENTO → CONCLUÍDA · EM_DISPUTA / CANCELADA / RECUSADA</p>
+        <strong style={{ color: "var(--ink)" }}>UniVia — catálogo de veículos</strong>
+        <p>Anúncios reais publicados pelos proprietários. Reservas e contratações ainda não estão disponíveis.</p>
       </div>
     </footer>
   );
 }
 
 export function BottomNav() {
+  const admin = useAdminAccess();
   const { user } = useApp();
   return (
     <nav className="bottomnav">
@@ -88,7 +90,7 @@ export function BottomNav() {
         <NavLink to="/painel" className={({ isActive }) => isActive ? "active" : ""}><span>Painel</span></NavLink>
         {user && <NavLink to="/perfil" className={({ isActive }) => isActive ? "active" : ""}><span>Perfil</span></NavLink>}
         <NavLink to="/cadastro" className={({ isActive }) => isActive ? "active" : ""}><span>Cadastro</span></NavLink>
-        {user && <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}><span>Admin</span></NavLink>}
+        {admin?.allowed && <NavLink to="/admin" className={({ isActive }) => isActive ? "active" : ""}><span>Administração</span></NavLink>}
       </div>
     </nav>
   );
