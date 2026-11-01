@@ -228,6 +228,32 @@ h1, h2, h3 { letter-spacing: -0.02em; }
 .mobile-menu { display: none; background: var(--card); border-bottom: 1px solid var(--line); }
 .mobile-menu a { display: block; padding: 14px 20px; font-weight: 500; font-size: 14px; border-top: 1px solid var(--line); }
 
+/* Private announcement management: shared theme, panels and controls. */
+.anuncios-page { max-width: 1040px; }
+.anuncios-page h1 { margin: 0; font-size: 24px; overflow-wrap: anywhere; }
+.anuncio-editor { max-width: 760px; }
+.anuncio-sort { max-width: 240px; margin: 24px 0 16px; }
+.anuncios-table-wrap { overflow-x: auto; }
+.anuncios-table { min-width: 640px; }
+.anuncios-table td:first-child { max-width: 300px; overflow-wrap: anywhere; }
+.anuncio-nowrap { white-space: nowrap; }
+.anuncio-status { display: inline-block; background: var(--field); color: var(--muted); border-color: var(--line-dark); }
+.anuncio-status.st-ATIVO { color: var(--success-ink); background: var(--success-bg); border-color: var(--success-line); }
+.anuncio-status.st-ENCERRADO { color: var(--faint); border-color: var(--line); }
+.anuncio-pagination { margin-top: 20px; }
+.anuncio-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.anuncio-prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.anuncio-checkbox { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.anuncio-checkbox input { width: 18px; height: 18px; flex-shrink: 0; }
+.anuncio-close { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 20px; }
+.anuncio-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.anuncio-more { margin-bottom: 20px; }
+@media (max-width: 640px) {
+  .anuncios-page > .panel { padding: 16px; }
+  .anuncio-prices { grid-template-columns: 1fr; gap: 0; }
+  .anuncio-pagination { gap: 12px; }
+}
+
 /* Owner vehicle and photo management */
 .owner-vehicle { max-width: 960px; padding-right: 20px; padding-left: 20px; }
 .owner-vehicle-edit { max-width: 720px; }

@@ -41,7 +41,13 @@ export default function OwnerVehicle({ editing = false }) {
         </ul>
         <div className="owner-vehicle-tools">
           <p className="muted">{v.anuncio ? `Anúncio: ${v.anuncio.titulo} (${v.anuncio.status})` : 'Sem anúncio publicado.'}</p>
-          {!v.desativado_em && <Link className="btn ghost small" to={`/meus-veiculos/${v.id}/editar`}>Editar veículo</Link>}
+          <div className="row">
+            {v.anuncio && <Link className="btn ghost small" to={`/anuncios/meus/${v.anuncio.id}`}>Ver anúncio</Link>}
+            {!v.desativado_em && <>
+              <Link className="btn ghost small" to={`/anuncios/novo?veiculo=${encodeURIComponent(v.id)}`}>Criar anúncio</Link>
+              <Link className="btn ghost small" to={`/meus-veiculos/${v.id}/editar`}>Editar veículo</Link>
+            </>}
+          </div>
         </div>
       </header>
       <VehiclePhotos key={`${user?.id}:${v.id}`} vehicle={v} />

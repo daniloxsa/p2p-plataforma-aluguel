@@ -1,5 +1,5 @@
 import MyVehicles from "../components/MyVehicles";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { BRL } from "../data/mock";
 import { useApp } from "../store/AppContext";
@@ -30,6 +30,7 @@ export default function Dashboard() {
       <h2 style={{ margin: "4px 0" }}>Painel {user ? `· ${user.nome}` : ""}</h2>
       <div className="muted">Reservas · veículos · vistoria · chat · financeiro · avaliações · disputas</div>
       <div className="tabs">
+        <Link className="chip" to="/anuncios/meus">Meus anúncios</Link>
         {[["reservas", "Minhas reservas"], ["veiculos", "Meus veículos"], ["financeiro", "Financeiro / Extrato"], ["ajuda", "Disputas / Ajuda"]].map(([k, l]) => (
           <button key={k} className={`chip ${tab === k ? "active" : ""}`} onClick={() => setTab(k)}>{l}</button>
         ))}

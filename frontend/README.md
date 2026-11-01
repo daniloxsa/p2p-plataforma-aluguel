@@ -1,5 +1,10 @@
 # DriveShare P2P — Protótipo Front-end (React + Vite)
 
+O gerenciamento privado de anúncios já usa a API real. Consulte
+[Anúncios — Fase A](ANUNCIOS.md) para rotas, configuração da API local,
+autenticação, testes e instruções de uso. As instruções históricas de substituição
+de mocks abaixo se referem às áreas demonstrativas, não ao CRUD privado.
+
 Protótipo navegável da Plataforma P2P de Aluguel de Veículos (especificação v2.0).
 
 ---

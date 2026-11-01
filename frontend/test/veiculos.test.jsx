@@ -88,3 +88,15 @@ it('vehicle API reuses the existing authenticated client and its refresh flow', 
     await expect(veiculosApi.mine()).rejects.toMatchObject({ status: 401 }); expect(invalidate).toHaveBeenCalled();
   } finally { apiClient.configureAuth(previous); }
 });
+
+it('links own active vehicles to draft creation and existing announcements to details', async () => {
+  vi.spyOn(veiculosApi, 'mine').mockResolvedValue({ items: [
+    { ...vehicle, anuncio: { id: 'announcement-id', status: 'RASCUNHO', preco_diaria: '150.90' } },
+    { ...vehicle, id: 'disabled', desativado_em: '2026-10-31' },
+  ], total: 2, page: 1, limit: 20 });
+  render(<MemoryRouter><MyVehicles /></MemoryRouter>);
+  const link = await screen.findByRole('link', { name: 'Criar anúncio' });
+  expect(link.getAttribute('href')).toBe('/anuncios/novo?veiculo=vehicle-id');
+  expect(screen.getAllByRole('link', { name: 'Criar anúncio' })).toHaveLength(1);
+  expect(screen.getByRole('link', { name: 'RASCUNHO · R$ 150,90/dia' }).getAttribute('href')).toBe('/anuncios/meus/announcement-id');
+});
